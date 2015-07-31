@@ -37,18 +37,14 @@ timestamp_to_usec({MegaSecs,Secs,MicroSecs}) ->
 %% Returns the pid of the created watchdog process.
 %% @end
 -spec watchdog_create(MessageToSendWhenTimeout :: term(),
-                      Timeout ::non_neg_integer) -> Result :: pid()
-.
-
+                      Timeout ::non_neg_integer) -> Result :: pid().
 watchdog_create(Timeout,MessageToSendWhenTimeout) ->
-    spawn(?MODULE, watchdog_loop, [self(), MessageToSendWhenTimeout, Timeout])
-.
+    spawn(?MODULE, watchdog_loop, [self(), MessageToSendWhenTimeout, Timeout]).
 
 -spec watchdog_loop(SenderPid :: pid(),
                     MessageToSendWhenTimeout :: term(),
                     Timeout :: non_neg_integer()) -> Result when
-    Result :: pid()
-.
+    Result :: pid().
 %% @doc Loop a watchdog.
 %% When Timeout reached,
 %% sends the MessageToSendWhenTimeout message to it's creator (the process)
@@ -74,8 +70,7 @@ watchdog_loop(SenderPid,MessageToSendWhenTimeout, Timeout) ->
     after
         Timeout ->
             SenderPid ! MessageToSendWhenTimeout
-    end
-.
+    end.
 
 %% call_server/2
 %% ====================================================================
@@ -86,8 +81,7 @@ watchdog_loop(SenderPid,MessageToSendWhenTimeout, Timeout) ->
 %% @end
 -spec call_server(Server :: atom(),
                   Request :: atom()) -> Result when
-    Result :: term()
-.
+    Result :: term().
 % ====================================================================
 call_server(Server, Request) ->
     call_server(Server,
@@ -95,8 +89,7 @@ call_server(Server, Request) ->
                 ?DEFAULT_SERVER_TIMEOUT,
                 ?DEFAULT_SERVICE_RETRY,
                 ?DEFAULT_SERVICE_SLEEP,
-                ?DEFAULT_SERVICE_RETRY)
-.
+                ?DEFAULT_SERVICE_RETRY).
 
 %% call_server/3
 %% ====================================================================
@@ -107,8 +100,7 @@ call_server(Server, Request) ->
 -spec call_server(Server :: atom(),
                   Request :: atom(),
                   Retry :: integer()) -> Result when
-    Result :: term()
-.
+    Result :: term().
 % ====================================================================
 call_server(Server, Request, Retry) ->
     call_server(Server,
@@ -116,8 +108,7 @@ call_server(Server, Request, Retry) ->
                 ?DEFAULT_SERVER_TIMEOUT,
                 Retry,
                 ?DEFAULT_SERVICE_SLEEP,
-                Retry)
-.
+                Retry).
 
 %% call_server/4
 %% ====================================================================
@@ -128,8 +119,7 @@ call_server(Server, Request, Retry) ->
                   Request :: atom(),
                   Retry :: integer(),
                   Sleep :: integer()) -> Result when
-    Result :: term()
-.
+    Result :: term().
 % ====================================================================
 call_server(Server, Request, Retry, Sleep) ->
     call_server(Server,
@@ -137,8 +127,7 @@ call_server(Server, Request, Retry, Sleep) ->
                 ?DEFAULT_SERVER_TIMEOUT,
                 Retry,
                 Sleep,
-                Retry)
-.
+                Retry).
 
 %% call_server/5
 %% ====================================================================
@@ -150,8 +139,7 @@ call_server(Server, Request, Retry, Sleep) ->
                   Retry :: integer(),
                   Sleep :: integer(),
                   Timeout :: integer() | infinity) -> Result when
-    Result :: term()
-.
+    Result :: term().
 % ====================================================================
 call_server(Server, Request, Retry, Sleep, Timeout) ->
     call_server(Server,
@@ -159,8 +147,7 @@ call_server(Server, Request, Retry, Sleep, Timeout) ->
                 Timeout,
                 Retry,
                 Sleep,
-                Retry)
-.
+                Retry).
 
 %% ====================================================================
 %% Internal functions
@@ -178,8 +165,7 @@ call_server(Server, Request, Retry, Sleep, Timeout) ->
                   RetryCount :: integer(),
                   Sleep :: integer(),
                   Count :: integer() | infinity) -> Result when
-    Result :: term()
-.
+    Result :: term().
 
 % ====================================================================
 call_server(Server,Request,Timeout,RetryCount,Sleep,Count) ->
@@ -203,8 +189,7 @@ call_server(Server,Request,Timeout,RetryCount,Sleep,Count) ->
                                 Count - 1)
             end
 
-    end
-.
+    end.
 %% ====================================================================
 %% Internal functions
 %% ====================================================================

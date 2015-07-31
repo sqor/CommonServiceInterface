@@ -19,5 +19,4 @@ init([]) ->
     CSIServer = {csi,{csi,start_link,[]},
                   permanent,2000,worker,[csi]},
 	Procs = [CSIServer],
-    {ok,{{one_for_one,3,10}, Procs}}
-.
+    {ok,{{one_for_one,3,10}, Procs}}.

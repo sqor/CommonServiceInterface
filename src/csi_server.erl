@@ -1,6 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author sqor <dev@sqor.com>
 %%% @copyright (C) 2015, SQOR, Inc.
+%%% @TODO update the doc here as it reflects an earlier version.
 %%% @doc Generic server for making request processing in parallell
 %%% Usage:  For a service, create a file service_name.erl
 %%%         and service_name_service_module.erl.
@@ -160,19 +161,15 @@ init({Name, Module, InitArgs}) ->
 
 
 handle_call(stop,_From,State) ->
-    {stop,normal,ok,State}
-;
+    {stop,normal,ok,State};
 
 handle_call('$stats_start',_From,State) ->
     NewState = State#rstate{stats_collect = true},
-    {reply,ok,NewState}
-;
+    {reply,ok,NewState};
 
 handle_call('$stats_stop',_From,State) ->
     NewState = State#rstate{stats_collect = false},
-    {reply,ok,NewState}
-;
-
+    {reply,ok,NewState};
 
 handle_call({'$stats_include_funs',FunctionList}, From, State)
   when is_atom(FunctionList) ->
@@ -193,8 +190,7 @@ handle_call({'$stats_include_funs',FunctionList},_From,State) ->
                        State#rstate{stats_requests_exclude = ExcludeList,
                                     stats_requests_include = IncludeList}
                end,
-    {reply,ok,NewState}
-;
+    {reply,ok,NewState};
 
 handle_call({'$stats_exclude_funs',FunctionList}, From, State)
   when is_atom(FunctionList) ->
@@ -218,15 +214,13 @@ handle_call({'$stats_set_funs',FunctionList}, From, State)
 handle_call({'$stats_set_funs',FunctionList},_From,State) ->
     NewState = State#rstate{stats_requests_include = FunctionList,
                             stats_requests_exclude = []},
-    {reply,ok,NewState}
-;
+    {reply,ok,NewState};
 
 handle_call('$stats_get_all',_From,State) ->
     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
                                              [io_lib:format("~p~n", [X])|AccIn]
                                     end, [], State#rstate.stat_table)),
-    {reply,Reply,State}
-;
+    {reply,Reply,State};
 
 handle_call({'$stats_get_funs',FunctionList},_From,State)
     when is_atom(FunctionList) ->
@@ -237,8 +231,7 @@ handle_call({'$stats_get_funs',_FunctionList},_From,State) ->
     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
                                              [io_lib:format("~p~n", [X])|AccIn]
                                     end, [], State#rstate.stat_table)),
-    {reply,Reply,State}
-;
+    {reply,Reply,State};
 
 handle_call({'$stats_get_types',TypeList},_From,State)
     when is_atom(TypeList) ->
@@ -249,23 +242,20 @@ handle_call({'$stats_get_types',_TypeList},_From,State) ->
     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
                                              [io_lib:format("~p~n", [X])|AccIn]
                                     end, [], State#rstate.stat_table)),
-    {reply,Reply,State}
-;
+    {reply,Reply,State};
 
 handle_call({'$stats_get_specific',_Function,_Type},_From,State) ->
     %% @TODO return the stats for only the function for a type
     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
                                              [io_lib:format("~p~n", [X])|AccIn]
                                     end, [], State#rstate.stat_table)),
-    {reply,Reply,State}
-;
+    {reply,Reply,State};
 
 handle_call('$stats_get_process_table',_From,State) ->
     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
                                              [io_lib:format("~p~n", [X])|AccIn]
                                     end, [], State#rstate.stats_process_table)),
-    {reply,Reply,State}
-;
+    {reply,Reply,State};
 
 handle_call({'$stats_include_type',TypeList}, From, State)
   when is_atom(TypeList) ->
@@ -302,37 +292,40 @@ handle_call({call_p,Request,Args,TimeoutForProcessing} = R,From,State) ->
                                Request,Args,State,
                                TimeoutForProcessing,self(),true]),
     ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
-    {noreply, State}
-;
+    {noreply, State};
 
-
-handle_call({post_p,Request, Args,TimeoutForProcessing},From,State) ->
+handle_call({post_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
+    collect_stats(start,State,Request,R,Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
                               [From,State#rstate.service_module,
                                Request,Args,State,
                                TimeoutForProcessing,self(),true]),
-    {reply, {posted,{Pid,From}}, State}
-;
+    ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
+    {reply, {posted,{Pid,From}}, State};
 
-handle_call({cast_p,Request, Args,TimeoutForProcessing},From,State) ->
+handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
+    collect_stats(start,State,Request,R,Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
                               [From,State#rstate.service_module,
                                Request,Args,State,
                                TimeoutForProcessing,self(),false]),
-    {reply, {casted,{Pid,From}} , State}
-;
+    ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
+    {reply, {casted,{Pid,From}} , State};
 
-handle_call({call_s,Request,Args},_From,State) ->
+handle_call({call_s,Request,Args} = R,_From,State) ->
+    collect_stats(start,State,Request,R,Ref = make_ref()),
     Module = State#rstate.service_module,
     try case Module:init(Args,State#rstate.service_state) of
             {ok,PState} ->
                 {Reply,EState} = Module:Request(Args,PState),
                 Module:terminate(normal,EState),
+                collect_stats(stop,State,Request,R,Ref),
                 {reply,Reply,State};
             WAFIT ->
-                {reply,WAFIT,State}
+               collect_stats(clean,State,Request,R,Ref),
+               {reply,WAFIT,State}
         end
     catch
         A:B ->
@@ -345,10 +338,12 @@ handle_call({call_s,Request,Args},_From,State) ->
                         A,
                         B,
                         erlang:get_stacktrace()]),
+            collect_stats(clean,State,Request,R,Ref),
             {reply,{error,exception},State}
     end;
 
 handle_call(Request, From, State) ->
+%    collect_stats(start,State,Request,Request,Ref = make_ref()),
     Module = State#rstate.service_module,
     case Module:handle_call(Request,From,State#rstate.service_state) of
         {reply, Reply, NewState} -> {reply, Reply, State#rstate{service_state = NewState}};
@@ -407,8 +402,7 @@ process_service_request(From,Module,Request,Args,State,
             ok;
         RealTRef ->
             erlang:cancel_timer(RealTRef)
-    end
-.
+    end.
 
 %% handle_cast/2
 %% ====================================================================
@@ -525,8 +519,7 @@ terminate(Reason, #rstate{service_module = Module,
     Vsn :: term().
 %% ====================================================================
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}
-.
+    {ok, State}.
 
 collect_stats(Stage,State,Request,R,Ref) ->
     case State#rstate.stats_collect of
