@@ -5787,7 +5787,7 @@ endef
 RELX_RELEASE = `$(call erlang,$(get_relx_release.erl))`
 
 run: all
-	$(verbose) $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/bin/$(RELX_RELEASE) console
+	$(verbose) $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/bin/$(RELX_RELEASE) 
 
 help::
 	$(verbose) printf "%s\n" "" \

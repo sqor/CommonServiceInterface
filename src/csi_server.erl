@@ -338,7 +338,7 @@ handle_call({call_s,Request,Args},_From,State) ->
         A:B ->
             ?LOGFORMAT(error,
                        "Exception in service when calling ~p:~p(~p)."
-                       " ~p:~p. Stacktrace:~p",
+                       " ~p:~p. Stacktrace:~p~n",
                        [Module,
                         Request,
                         Args,
@@ -392,14 +392,15 @@ process_service_request(From,Module,Request,Args,State,
         A:B ->
             ?LOGFORMAT(error,
                        "Exception in service when calling ~p:~p(~p)."
-                       " ~p:~p. Stacktrace:~p",
+                       " ~p:~p. Stacktrace:~p~n",
                        [Module,
                         Request,
                         Args,
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            catch gen_server:reply(From,{error,exception})
+            catch gen_server:reply(From,{error,exception}),
+            erlang:exit(exception)
     end,
     case TRef of
         undefined ->
@@ -441,49 +442,42 @@ handle_cast(_Msg, State) ->
 %% ====================================================================
 handle_info(Info, State) ->
     case try (State#rstate.service_module):handle_info(Info,State#rstate.service_state)
-         catch
-             _:_ -> continue
-         end of
+         catch _:_ -> continue end of
         continue ->
-            {NRef,NPid} =
-                case Info of
-                    {'EXIT',Pid,Reason} when Reason =/= normal ->
-                        ?LOGFORMAT(warning,"Process ~p EXIT. Reason:~p",[Pid,Reason]),
-                        {undefined,Pid};
-                    {'EXIT',Pid,_Reason} ->
-                        case ets:lookup(State#rstate.stats_process_table, Pid) of
-                            [{Pid,Ref,Request,R}] ->
-                                collect_stats(stop,State,Request,R,Ref),
-                                {Ref,Pid};
-                            WAFIT ->
-                                ?LOGFORMAT(warning,
-                                           "Pid ~p not returned value ~p from process table",
-                                           [Pid,WAFIT]),
-                                {undefined,Pid}
-                        end;
-                    {kill_worker_reply,Pid,CallerPid} ->
-                        catch gen_server:reply(CallerPid, {error,timeout_killed}),
-                        erlang:exit(Pid, kill),
-                        {undefined,Pid};
-                    {kill_worker_noreply,Pid} ->
-                        erlang:exit(Pid, kill),
-                        {undefined,Pid};
-                    WAFIT -> 
-                        ?LOGFORMAT(warning,
-                                   "Unhandled message received for service ~p."
-                                   "Module to be called:~p. Message:~p",
-                                   [State#rstate.service_name,
-                                    State#rstate.service_module,
-                                    WAFIT]),
-                        {undefined,undefined}
-                end,
-            collect_stats(clean, State, undefined, undefined, NRef),
-            ets:delete(State#rstate.stats_process_table, NPid),
+            case Info of
+                {'EXIT',Pid,Reason} ->
+                    case ets:lookup(State#rstate.stats_process_table, Pid) of
+                        [{Pid,Ref,Request,R}] ->
+                            case Reason =:= normal of
+                                true ->
+                                    collect_stats(stop,State,Request,R,Ref);
+                                _ ->
+                                    ok
+                            end,
+                            ets:delete(State#rstate.stats_process_table, Pid),
+                            collect_stats(clean, State, undefined, undefined, Ref);
+                        WAFIT ->
+                            ?LOGFORMAT(warning,
+                                       "Pid ~p not returned value ~p from process table~n",
+                                       [Pid,WAFIT])
+                    end;
+                {kill_worker_reply,Pid,CallerPid} ->
+                    catch gen_server:reply(CallerPid, {error,timeout_killed}),
+                    erlang:exit(Pid, kill);
+                {kill_worker_noreply,Pid} ->
+                    erlang:exit(Pid, kill);
+                WAFIT -> 
+                    ?LOGFORMAT(warning,
+                               "Unhandled message received for service ~p."
+                               "Module to be called:~p. Message:~p",
+                               [State#rstate.service_name,
+                                State#rstate.service_module,
+                                WAFIT])
+            end,
             {noreply, State};
         Else ->
             Else
-    end
-.
+    end.
 
 
 %% terminate/2
