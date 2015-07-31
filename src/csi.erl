@@ -22,10 +22,10 @@
 
 
 start() -> csi_server:start(?CSI_SERVICE_NAME,?CSI_SERVICE_MODULE).
-start_link() -> cu_pserver:start_link(?CSI_SERVICE_NAME,?CSI_SERVICE_MODULE).
+start_link() -> csi_server:start_link(?CSI_SERVICE_NAME,?CSI_SERVICE_MODULE).
 
-stop() -> cu_pserver:stop(?CSI_SERVICE_NAME).
+stop() -> csi_server:stop(?CSI_SERVICE_NAME).
 
 process_foo(From) -> csi_server:call(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long(From) -> csi_pserver:call(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing(From) -> csi_pserver:call(?CSI_SERVICE_NAME,process_crashing,From).
+process_too_long(From) -> csi_server:call(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing(From) -> csi_server:call(?CSI_SERVICE_NAME,process_crashing,From).
