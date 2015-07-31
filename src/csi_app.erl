@@ -21,7 +21,7 @@ debug() ->
 .
 
 start(_Type, _Args) ->
-	rls_sup:start_link().
+	csi_sup:start_link().
 
 stop(_State) ->
 	ok.
