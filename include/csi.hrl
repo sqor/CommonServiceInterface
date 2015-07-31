@@ -2,6 +2,7 @@
 
 -define(CSI_SERVICE_NAME,csi_service).
 -define(CSI_SERVICE_MODULE,csi_service).
+-define(CSI_SERVER_MODULE,csi_server).
 
 -define(DEFAULT_SERVICE_RETRY,2).
 -define(DEFAULT_SERVICE_SLEEP,200).

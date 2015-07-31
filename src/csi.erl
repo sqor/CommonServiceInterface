@@ -64,14 +64,14 @@ stop() -> stop(?CSI_SERVICE_NAME).
 start(ServerName, Module) -> start(ServerName, Module, undefined).
 start(ServerName, Module, InitArgs) ->
     gen_server:start({local, ServerName},
-                     ?MODULE, 
+                     ?CSI_SERVER_MODULE, 
                      {ServerName, Module, InitArgs},
                      [])
 .
 start_link(ServerName, Module) -> start_link(ServerName, Module, []).
 start_link(ServerName, Module, InitArgs) ->
     gen_server:start_link({local, ServerName},
-                          ?MODULE,
+                          ?CSI_SERVER_MODULE,
                           {ServerName, Module, InitArgs},
                           []).
 
