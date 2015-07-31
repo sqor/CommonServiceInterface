@@ -271,7 +271,7 @@ call(ServerName, Request, TimeoutForProcessing) ->
                  stats_collect = true,
                  stat_table,
                  stats_process_table,
-                 stats_module = cu_pserver,
+                 stats_module = ?MODULE,
                  stats_requests_include = [all],
                  stats_requests_exclude = [],
 %                 stats_types = [response_time]

@@ -1,9 +1,12 @@
 -compile([{parse_transform, lager_transform},{export_all}]).
 
+-define(CSI_SERVICE_NAME,csi_service).
+-define(CSI_SERVICE_MODULE,csi_service).
+
 -define(DEFAULT_SERVICE_RETRY,2).
 -define(DEFAULT_SERVICE_SLEEP,200).
 -ifndef(LOGFORMAT).
--define(LOGFORMAT(Level,Formant,Args),
+-define(LOGFORMAT(Level,Format,Args),
         lager:Level(Format,Args)).
 -define(LOGMSG(Level,Format),
         lager:Level(Format)).

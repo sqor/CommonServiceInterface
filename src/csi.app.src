@@ -1,0 +1,14 @@
+{application, csi, [
+	{description, "Common Service Interface service and library."},
+	{vsn, "0.0.1"},
+	{id, "git"},
+	{modules, []},
+	{registered, []},
+	{applications, [
+        kernel,
+		stdlib,
+		lager
+	]},
+	{mod, {csi_app, []}},
+	{env, []}
+]}.
