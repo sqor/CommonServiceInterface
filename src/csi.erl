@@ -21,6 +21,7 @@
           start/3,
           start_link/3,
           stop/1,
+          services/0,
           services_status/0,
           service_status/1,
           call_p/2,
@@ -81,6 +82,10 @@ stop(ServerName) ->
     gen_server:call(ServerName,
                     stop,
                     ?DEFAULT_SERVER_TIMEOUT).
+
+services() ->
+    csi:call_s(?CSI_SERVICE_NAME,
+               services).
 
 services_status() ->
     gen_server:call(?CSI_SERVICE_NAME,
