@@ -69,10 +69,6 @@
 -export([process_service_request/8
         ]).
 
--export([response_time/6
-        ]).
-
-
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
@@ -82,7 +78,7 @@
                             stats_collect = true,
                             stat_table,
                             stats_process_table,
-                            stats_module = ?MODULE,
+                            stats_module = csi_stats,
                             stats_requests_include = [all],
                             stats_requests_exclude = [],
                             %                 stats_types = [response_time]
@@ -587,48 +583,3 @@ stats_to_collect(Request,State) ->
             lists:member(Request, State#csi_service_state.stats_requests_include) and
                 not lists:member(Request,State#csi_service_state.stats_requests_exclude)
     end.
-            
-response_time(start,_Request,_R,Ref,_Params,Tab) ->
-    ets:insert(Tab, {{response_time_first,Ref},csi_utils:now_usec()});
-
-response_time(stop,Request,_R,Ref,Params,Tab) ->
-    case ets:lookup(Tab, {response_time_first,Ref}) of
-        [{{response_time_first,Ref},Value}] ->
-            ResponseTime = csi_utils:now_usec() - Value,
-            ets:delete(Tab,{response_time_first,Ref}),
-            {NrOfReqs,ART,_Avg,MinRt,MaxRt} = case ets:lookup(Tab, {response_time,Request}) of
-                                                 [] ->
-                                                     {0,0,0,1000000000000,0};
-                                                 [{{response_time,Request},Values}] ->
-                                                     Values
-                                             end,
-            {NormalizedART,NewNr} = 
-                case proplists:get_value("last_nth_to_collect",
-                                         Params, 
-                                         10) =:= NrOfReqs of
-                    true ->
-                        NormalizeToNth = proplists:get_value("normalize_to_nth",
-                                                             Params,
-                                                             8),
-                        {( ART / NrOfReqs ) * NormalizeToNth,NormalizeToNth + 1};
-                    _ ->
-                        {ART,NrOfReqs + 1}
-                end,
-            AllRespTime = NormalizedART + ResponseTime,
-            NewMinRt = min(MinRt,ResponseTime),
-            NewMaxRt = max(MaxRt,ResponseTime),
-            ets:insert(Tab, {{response_time,Request},{NewNr,
-                                                      AllRespTime,
-                                                      AllRespTime/NewNr,
-                                                      NewMinRt,
-                                                      NewMaxRt}})
-    end;
-
-response_time(clean,_Request,_R,Ref,_Params,Tab) ->
-    case Ref of
-        undefined ->
-            ok;
-        Else ->
-            ets:delete(Tab, {response_time_first,Else})
-    end.
-

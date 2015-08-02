@@ -1,3 +1,5 @@
 /ebin/
 /deps/
 /_rel/
+/doc/
+/relx
