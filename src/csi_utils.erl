@@ -86,7 +86,7 @@ watchdog_loop(SenderPid,MessageToSendWhenTimeout, Timeout) ->
         stop ->
             ok;
         WAFIT ->
-            lager:error("Watchdog for process ~p got an unexpected message:~p",[SenderPid,WAFIT]),
+            ?LOGFORMAT(error,"Watchdog for process ~p got an unexpected message:~p",[SenderPid,WAFIT]),
             watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout)
     after
         Timeout ->
@@ -101,7 +101,7 @@ watchdog_loop(SenderPid,MessageToSendWhenTimeout, Timeout) ->
 %%      sleep   : {?DEFAULT_SERVICE_SLEEP}
 %% @end
 -spec call_server(Server :: atom(),
-                  Request :: atom()) -> Result when
+                  Request :: term()) -> Result when
     Result :: term().
 % ====================================================================
 call_server(Server, Request) ->
@@ -115,11 +115,11 @@ call_server(Server, Request) ->
 %% call_server/3
 %% ====================================================================
 %% @doc Call a gen server with a ServerName, Arguments, Retry count,
-%% default timeout      : {@?DEFAULT_SERVER_TIMEOUT},
-%% default sleep time   : {@?DEFAULT_SERVICE_SLEEP}
+%% default timeout      : ?DEFAULT_SERVER_TIMEOUT,
+%% default sleep time   : ?DEFAULT_SERVICE_SLEEP
 %% @end
 -spec call_server(Server :: atom(),
-                  Request :: atom(),
+                  Request :: term(),
                   Retry :: integer()) -> Result when
     Result :: term().
 % ====================================================================
@@ -134,10 +134,10 @@ call_server(Server, Request, Retry) ->
 %% call_server/4
 %% ====================================================================
 %% @doc Call a gen server with a ServerName, Arguments, Retry count,
-%% Sleep time and default timeout : {@DEFAULTTIMEOUT}
+%% Sleep time and default timeout : ?DEFAULT_SERVER_TIMEOUT
 %% @end
 -spec call_server(Server :: atom(),
-                  Request :: atom(),
+                  Request :: term(),
                   Retry :: integer(),
                   Sleep :: integer()) -> Result when
     Result :: term().
@@ -156,7 +156,7 @@ call_server(Server, Request, Retry, Sleep) ->
 %% Retry count, Sleep time and Timeout
 %% @end
 -spec call_server(Server :: atom(),
-                  Request :: atom(),
+                  Request :: term(),
                   Retry :: integer(),
                   Sleep :: integer(),
                   Timeout :: integer() | infinity) -> Result when
@@ -180,8 +180,8 @@ call_server(Server, Request, Retry, Sleep, Timeout) ->
 %% @doc <a>Call a gen server with a ServerName, Arguments, Retry count,
 %% Sleep time and Timeout</a>
 %% @end
--spec call_server(ServerName :: term(),
-                  Arguments :: term(),
+-spec call_server(ServerName :: atom(),
+                  Request :: term(),
                   Timeout:: integer() | infinity,
                   RetryCount :: integer(),
                   Sleep :: integer(),
@@ -196,7 +196,7 @@ call_server(Server,Request,Timeout,RetryCount,Sleep,Count) ->
         exit:{timeout,Location} ->
             {error,{timeout,Location}};
         A:B ->
-            lager:error("Calling server ~p raised an exception:~p:~p",[Server,A,B]),
+            ?LOGFORMAT(error,"Calling server ~p raised an exception:~p:~p",[Server,A,B]),
             case Count of
                 0 ->
                     try_service_discovery(Server,Request);

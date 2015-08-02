@@ -9,9 +9,9 @@
 -define(DEFAULT_SERVICE_SLEEP,200).
 -ifndef(LOGFORMAT).
 -define(LOGFORMAT(Level,Format,Args),
-        lager:Level(Format,Args)).
+        ok = lager:Level(Format,Args)).
 -define(LOGMSG(Level,Format),
-        lager:Level(Format)).
+        ok = lager:Level(Format)).
 -endif.
 
 -ifdef(debug).

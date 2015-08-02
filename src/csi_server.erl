@@ -45,7 +45,7 @@
 -behaviour(gen_server).
 -compile([{parse_transform, lager_transform}]).
 
--define(LOGFORMAT(Severity,Msg,Args),lager:Severity(Msg,Args)).
+-define(LOGFORMAT(Severity,Msg,Args),ok = lager:Severity(Msg,Args)).
 
 -include("csi.hrl").
 
@@ -76,22 +76,26 @@
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
--record(rstate, {service_name,
-                 service_module,
-                 service_state,
-                 stats_collect = true,
-                 stat_table,
-                 stats_process_table,
-                 stats_module = ?MODULE,
-                 stats_requests_include = [all],
-                 stats_requests_exclude = [],
-%                 stats_types = [response_time]
-                 stats_types = [{response_time,[{"last_nth_to_collect",10},
-                                                {"normalize_to_nth",8}]}
-%%                                ,{req_per_sec,[{"time_window",5}
-%%                                              ]}
-                               ]
-                }).
+-record(csi_service_state, {service_name,
+                            service_module,
+                            service_state,
+                            stats_collect = true,
+                            stat_table,
+                            stats_process_table,
+                            stats_module = ?MODULE,
+                            stats_requests_include = [all],
+                            stats_requests_exclude = [],
+                            %                 stats_types = [response_time]
+                            stats_types = [{response_time,[{"last_nth_to_collect",10},
+                                                           {"normalize_to_nth",8}]}
+                                          %%                                ,{req_per_sec,[{"time_window",5}
+                                          %%                                              ]}
+                                          ]
+                           }).
+
+-type csi_service_state() :: #csi_service_state{}.
+ 
+-export_type([csi_service_state/0]).
 
 %% init/1
 %% ====================================================================
@@ -113,14 +117,14 @@ init({Name, Module, InitArgs}) ->
     StatTable = ets:new(Name, [private]),
     ProcTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_procs"),[private]),
     pg2:create(?CSI_SERVICE_PROCESS_GROUP_NAME),
-    csi:register(),
+    ok = csi:register(),
     try case Module:init_service(InitArgs) of
             {ok,SState} ->
-                {ok,#rstate{service_name = Name,
-                            service_module = Module,
-                            service_state = SState,
-                            stat_table = StatTable,
-                            stats_process_table = ProcTable}};
+                {ok,#csi_service_state{service_name = Name,
+                                       service_module = Module,
+                                       service_state = SState,
+                                       stat_table = StatTable,
+                                       stats_process_table = ProcTable}};
             WAFIT ->
                 {stop,WAFIT}
         end
@@ -176,11 +180,11 @@ handle_call('$stats_start_all',From,State) ->
     handle_call('$stats_start',From,State);
 
 handle_call('$stats_start',_From,State) ->
-    NewState = State#rstate{stats_collect = true},
+    NewState = State#csi_service_state{stats_collect = true},
     {reply,ok,NewState};
 
 handle_call('$stats_stop',_From,State) ->
-    NewState = State#rstate{stats_collect = false},
+    NewState = State#csi_service_state{stats_collect = false},
     {reply,ok,NewState};
 
 handle_call('$stats_stop_all',From,State) ->
@@ -193,19 +197,23 @@ handle_call({'$stats_include_funs',FunctionList}, From, State)
 
 handle_call({'$stats_include_funs',FunctionList},_From,State) ->
     % first remove the functions from the exclude list
-    ExcludeList = csi_utils:remove_elems_from_list(FunctionList,
-                                                   State#rstate.stats_requests_exclude),
+    ExcludeList =
+        csi_utils:remove_elems_from_list(FunctionList,
+                                         State#csi_service_state.stats_requests_exclude),
     % second include it in stats requests if it does not contain all
-    NewState = case lists:member(all, State#rstate.stats_requests_include) of
-                   true ->
-                       State#rstate{stats_requests_exclude = ExcludeList};
-                   _ ->
-                       % add to the list of requests if it is not there
-                       IncludeList = csi_utils:add_elems_to_list(FunctionList,
-                                                                 State#rstate.stats_requests_include),
-                       State#rstate{stats_requests_exclude = ExcludeList,
-                                    stats_requests_include = IncludeList}
-               end,
+    NewState = 
+        case lists:member(all,
+                          State#csi_service_state.stats_requests_include) of
+            true ->
+                State#csi_service_state{stats_requests_exclude = ExcludeList};
+            _ ->
+                % add to the list of requests if it is not there
+                IncludeList =
+                    csi_utils:add_elems_to_list(FunctionList,
+                                                State#csi_service_state.stats_requests_include),
+                State#csi_service_state{stats_requests_exclude = ExcludeList,
+                                        stats_requests_include = IncludeList}
+        end,
     {reply,ok,NewState};
 
 handle_call({'$stats_exclude_funs',FunctionList}, From, State)
@@ -214,13 +222,14 @@ handle_call({'$stats_exclude_funs',FunctionList}, From, State)
 
 handle_call({'$stats_exclude_funs',FunctionList},_From,State) ->
     % first, remove it from the requests
-    IncludeList = csi_utils:remove_elems_from_list(FunctionList,
-                                                   State#rstate.stats_requests_include),
+    IncludeList =
+        csi_utils:remove_elems_from_list(FunctionList,
+                                         State#csi_service_state.stats_requests_include),
     % second, add it to the exclude list
     ExcludeList = csi_utils:add_elems_to_list(FunctionList,
-                                              State#rstate.stats_requests_exclude),
-    NewState = State#rstate{stats_requests_exclude = ExcludeList,
-                         stats_requests_include = IncludeList},
+                                              State#csi_service_state.stats_requests_exclude),
+    NewState = State#csi_service_state{stats_requests_exclude = ExcludeList,
+                                       stats_requests_include = IncludeList},
     {reply,ok,NewState};
 
 handle_call({'$stats_set_funs',FunctionList}, From, State)
@@ -228,15 +237,15 @@ handle_call({'$stats_set_funs',FunctionList}, From, State)
     handle_call({'$stats_set',[FunctionList]}, From, State);
 
 handle_call({'$stats_set_funs',FunctionList},_From,State) ->
-    NewState = State#rstate{stats_requests_include = FunctionList,
-                            stats_requests_exclude = []},
+    NewState = State#csi_service_state{stats_requests_include = FunctionList,
+                                       stats_requests_exclude = []},
     {reply,ok,NewState};
 
 handle_call('$stats_get_all',_From,State) ->
 %%     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
 %%                                              [io_lib:format("~p~n", [X])|AccIn]
 %%                                     end, [], State#rstate.stat_table)),
-    Reply = ets:tab2list(State#rstate.stat_table),
+    Reply = ets:tab2list(State#csi_service_state.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_funs',FunctionList},_From,State)
@@ -245,7 +254,7 @@ handle_call({'$stats_get_funs',FunctionList},_From,State)
 
 handle_call({'$stats_get_funs',_FunctionList},_From,State) ->
     %% @TODO return the stats for only the functions in the Functionlist
-    Reply = ets:tab2list(State#rstate.stat_table),
+    Reply = ets:tab2list(State#csi_service_state.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_types',TypeList},_From,State)
@@ -254,16 +263,16 @@ handle_call({'$stats_get_types',TypeList},_From,State)
 
 handle_call({'$stats_get_types',_TypeList},_From,State) ->
     %% @TODO return the stats for only the types in the Typelist
-    Reply = ets:tab2list(State#rstate.stat_table),
+    Reply = ets:tab2list(State#csi_service_state.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_specific',_Function,_Type},_From,State) ->
     %% @TODO return the stats for only the function for a type
-    Reply = ets:tab2list(State#rstate.stat_table),
+    Reply = ets:tab2list(State#csi_service_state.stat_table),
     {reply,Reply,State};
 
 handle_call('$stats_get_process_table',_From,State) ->
-    Reply = ets:tab2list(State#rstate.stats_process_table),
+    Reply = ets:tab2list(State#csi_service_state.stats_process_table),
     {reply,Reply,State};
 
 handle_call({'$stats_include_type',TypeList}, From, State)
@@ -272,8 +281,8 @@ handle_call({'$stats_include_type',TypeList}, From, State)
 
 handle_call({'$stats_include_type',TypeList},_From,State) ->
     IncludeList = csi_utils:add_elems_to_list(TypeList,
-                                              State#rstate.stats_types),
-    NewState = State#rstate{stats_types = IncludeList},
+                                              State#csi_service_state.stats_types),
+    NewState = State#csi_service_state{stats_types = IncludeList},
     {reply,ok,NewState};
 
 handle_call({'$stats_exclude_type',TypeList}, From, State)
@@ -283,50 +292,50 @@ handle_call({'$stats_exclude_type',TypeList}, From, State)
 handle_call({'$stats_exclude_type',TypeList},_From,State) ->
     % first, remove it from the requests
     ExcludeList = csi_utils:remove_elems_from_list(TypeList,
-                                                   State#rstate.stats_types),
-    NewState = State#rstate{stats_types = ExcludeList},
+                                                   State#csi_service_state.stats_types),
+    NewState = State#csi_service_state{stats_types = ExcludeList},
     {reply,ok,NewState};
 
 handle_call({'$stats_change_module',Module},_From,State) ->
     %% @TODO check if the module is loaded and load it if not
 
-    NewState = State#rstate{stats_module = Module},
+    NewState = State#csi_service_state{stats_module = Module},
     {reply,ok,NewState};
 
 handle_call({call_p,Request,Args,TimeoutForProcessing} = R,From,State) ->
     collect_stats(start,State,Request,R,Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#rstate.service_module,
+                              [From,State#csi_service_state.service_module,
                                Request,Args,State,
                                TimeoutForProcessing,self(),true]),
-    ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
     {noreply, State};
 
 handle_call({post_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
     collect_stats(start,State,Request,R,Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#rstate.service_module,
+                              [From,State#csi_service_state.service_module,
                                Request,Args,State,
                                TimeoutForProcessing,self(),true]),
-    ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
     {reply, {posted,{Pid,From}}, State};
 
 handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
     collect_stats(start,State,Request,R,Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#rstate.service_module,
+                              [From,State#csi_service_state.service_module,
                                Request,Args,State,
                                TimeoutForProcessing,self(),false]),
-    ets:insert(State#rstate.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {casted,{Pid,From}} , State};
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
+    {reply, {casted,{Pid,csi_service_state}} , State};
 
 handle_call({call_s,Request,Args} = R,_From,State) ->
     collect_stats(start,State,Request,R,Ref = make_ref()),
-    Module = State#rstate.service_module,
-    try case Module:init(Args,State#rstate.service_state) of
+    Module = State#csi_service_state.service_module,
+    try case Module:init(Args,State#csi_service_state.service_state) of
             {ok,PState} ->
                 {Reply,EState} = Module:Request(Args,PState),
                 Module:terminate(normal,EState),
@@ -353,14 +362,14 @@ handle_call({call_s,Request,Args} = R,_From,State) ->
 
 handle_call(Request, From, State) ->
 %    collect_stats(start,State,Request,Request,Ref = make_ref()),
-    Module = State#rstate.service_module,
-    case Module:handle_call(Request,From,State#rstate.service_state) of
-        {reply, Reply, NewState} -> {reply, Reply, State#rstate{service_state = NewState}};
-        {reply, Reply, NewState, Timeout} -> {reply, Reply, State#rstate{service_state = NewState},Timeout};
-        {noreply, NewState} -> {noreply, State#rstate{service_state = NewState}};
-        {noreply, NewState, Timeout} -> {noreply, State#rstate{service_state = NewState},Timeout};
-        {stop, Reason, Reply, NewState} -> {stop, Reason, Reply, State#rstate{service_state = NewState}};
-        {stop, Reason, NewState} -> {stop, Reason, State#rstate{service_state = NewState}}
+    Module = State#csi_service_state.service_module,
+    case Module:handle_call(Request,From,State#csi_service_state.service_state) of
+        {reply, Reply, NewState} -> {reply, Reply, State#csi_service_state{service_state = NewState}};
+        {reply, Reply, NewState, Timeout} -> {reply, Reply, State#csi_service_state{service_state = NewState},Timeout};
+        {noreply, NewState} -> {noreply, State#csi_service_state{service_state = NewState}};
+        {noreply, NewState, Timeout} -> {noreply, State#csi_service_state{service_state = NewState},Timeout};
+        {stop, Reason, Reply, NewState} -> {stop, Reason, Reply, State#csi_service_state{service_state = NewState}};
+        {stop, Reason, NewState} -> {stop, Reason, State#csi_service_state{service_state = NewState}}
     end.
 
 process_service_request(From,Module,Request,Args,State,
@@ -379,7 +388,7 @@ process_service_request(From,Module,Request,Args,State,
                                      Parent,
                                      KillMessage)
            end,
-    try case Module:init(Args,State#rstate.service_state) of
+    try case Module:init(Args,State#csi_service_state.service_state) of
             {ok,PState} ->
                 {Reply,EState} = Module:Request(Args,PState),
                 case NeedReply of
@@ -426,8 +435,8 @@ process_service_request(From,Module,Request,Args,State,
     NewState :: term(),
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
-handle_cast({cast,Request}, State) ->
-    handle_call(Request, self(), State),
+handle_cast({cast,FunctionRequest}, State) ->
+    _ = handle_call(FunctionRequest, {self(),make_ref()}, State),
     {noreply, State};
 
 
@@ -449,12 +458,12 @@ handle_cast(_Msg, State) ->
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
 handle_info(Info, State) ->
-    case try (State#rstate.service_module):handle_info(Info,State#rstate.service_state)
+    case try (State#csi_service_state.service_module):handle_info(Info,State#csi_service_state.service_state)
          catch _:_ -> continue end of
         continue ->
             case Info of
                 {'EXIT',Pid,Reason} ->
-                    case ets:lookup(State#rstate.stats_process_table, Pid) of
+                    case ets:lookup(State#csi_service_state.stats_process_table, Pid) of
                         [{Pid,Ref,Request,R}] ->
                             case Reason =:= normal of
                                 true ->
@@ -462,7 +471,7 @@ handle_info(Info, State) ->
                                 _ ->
                                     ok
                             end,
-                            ets:delete(State#rstate.stats_process_table, Pid),
+                            ets:delete(State#csi_service_state.stats_process_table, Pid),
                             collect_stats(clean, State, undefined, undefined, Ref);
                         WAFIT ->
                             ?LOGFORMAT(warning,
@@ -478,8 +487,8 @@ handle_info(Info, State) ->
                     ?LOGFORMAT(warning,
                                "Unhandled message received for service ~p."
                                "Module to be called:~p. Message:~p",
-                               [State#rstate.service_name,
-                                State#rstate.service_module,
+                               [State#csi_service_state.service_name,
+                                State#csi_service_state.service_module,
                                 WAFIT])
             end,
             {noreply, State};
@@ -499,10 +508,10 @@ handle_info(Info, State) ->
             | {shutdown, term()}
             | term().
 %% ====================================================================
-terminate(Reason, #rstate{service_module = Module,
-                          service_name = Name,
-                          service_state = ServiceState,
-                          stat_table = StatTable}) ->
+terminate(Reason, #csi_service_state{service_module = Module,
+                                     service_name = Name,
+                                     service_state = ServiceState,
+                                     stat_table = StatTable}) ->
     ets:delete(StatTable),
     try Module:terminate_service(Reason,ServiceState)
     catch
@@ -536,28 +545,28 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 collect_stats(Stage,State,Request,R,Ref) ->
-    case State#rstate.stats_collect of
+    case State#csi_service_state.stats_collect of
         true ->
             case stats_to_collect(Request,State) of
                 true ->
                     try
-                        lists:map(fun ({M,Params}) ->
-                                           (State#rstate.stats_module):
+                        lists:foreach(fun ({M,Params}) ->
+                                           (State#csi_service_state.stats_module):
                                            M(Stage,
                                              Request,
                                              R,
                                              Ref,
                                              Params,
-                                             State#rstate.stat_table)
+                                             State#csi_service_state.stat_table)
                                   end,
-                                  State#rstate.stats_types)
+                                  State#csi_service_state.stats_types)
                     catch
                         A:B ->
                             ?LOGFORMAT(error,
                                        "Exception when calling "
                                        "~p:~p(~p). ~p:~p --> Stacktrace:~p",
-                                       [State#rstate.stats_module,
-                                        State#rstate.stats_types,
+                                       [State#csi_service_state.stats_module,
+                                        State#csi_service_state.stats_types,
                                         R,
                                         A,
                                         B,
@@ -571,12 +580,12 @@ collect_stats(Stage,State,Request,R,Ref) ->
     end.
 
 stats_to_collect(Request,State) ->
-    case lists:member(all,State#rstate.stats_requests_include) of
+    case lists:member(all,State#csi_service_state.stats_requests_include) of
         true ->
-            not lists:member(Request,State#rstate.stats_requests_exclude);
+            not lists:member(Request,State#csi_service_state.stats_requests_exclude);
         _ ->
-            lists:member(Request, State#rstate.stats_requests_include) and
-                not lists:member(Request,State#rstate.stats_requests_exclude)
+            lists:member(Request, State#csi_service_state.stats_requests_include) and
+                not lists:member(Request,State#csi_service_state.stats_requests_exclude)
     end.
             
 response_time(start,_Request,_R,Ref,_Params,Tab) ->
