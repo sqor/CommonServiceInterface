@@ -21,7 +21,7 @@
           start/3,
           start_link/3,
           stop/1,
-          service_status/0,
+          services_status/0,
           service_status/1,
           call_p/2,
           call_p/3,
@@ -82,9 +82,10 @@ stop(ServerName) ->
                     stop,
                     ?DEFAULT_SERVER_TIMEOUT).
 
-service_status() ->
-    csi:call_s(?CSI_SERVICE_NAME,
-               service_status).
+services_status() ->
+    gen_server:call(?CSI_SERVICE_NAME,
+                    '$collect_services_status',
+                    ?DEFAULT_SERVER_TIMEOUT).
 
 service_status(ServerName) ->
     gen_server:call(ServerName,
@@ -92,8 +93,9 @@ service_status(ServerName) ->
                     ?DEFAULT_SERVER_TIMEOUT).
 
 stats_start() ->
-    call_s(?CSI_SERVICE_NAME,
-           stats_start).
+    gen_server:call(?CSI_SERVICE_NAME,
+                    '$stats_start_all',
+                    ?DEFAULT_SERVER_TIMEOUT).
 
 stats_start(ServerName) ->
     gen_server:call(ServerName,
@@ -101,8 +103,9 @@ stats_start(ServerName) ->
                     ?DEFAULT_SERVER_TIMEOUT).
 
 stats_stop() ->
-    call_s(?CSI_SERVICE_NAME,
-           stats_stop).
+    gen_server:call(?CSI_SERVICE_NAME,
+                    '$stats_stop_all',
+                    ?DEFAULT_SERVER_TIMEOUT).
 
 stats_stop(ServerName) ->
     gen_server:call(ServerName,

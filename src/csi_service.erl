@@ -21,9 +21,12 @@
 
 -record(csi_service_state,{}).
 
--export([service_status/2,
-         stats_start/2,
-         stats_stop/2
+-export([stats_start_all/0,
+         stats_stop_all/0,
+         services/2
+        ]).
+
+-export([collect_services_status/1
         ]).
 
 -export([process_foo/2,
@@ -52,44 +55,9 @@ terminate(Reason,_State) ->
 terminate_service(_Reason,_State) ->
     ok.
 
-service_status(_Args,State) ->
-    {lists:foldl(fun(Server,Acc) ->
-                         Status = case Server =:= self() of
-                                      true ->
-                                          State;
-                                      _ ->
-                                          csi:service_status(Server)
-                                  end,
-                         [{erlang:process_info(Server, registered_name),Status}
-                              | Acc]
-                 end,
-                 [],
-                 pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
+services(_Args,State) ->
+    {[erlang:process_info(X, registered_name) || X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
      State}.
-
-stats_start(_Args,State) ->
-    lists:foreach(fun(Server) ->
-                          case Server =:= self() of
-                              true ->
-                                  csi:cast(Server,'$stats_start');
-                              _ ->
-                                  csi:stats_start(Server)
-                          end
-                  end,
-                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
-    {ok,State}.
-
-stats_stop(_Args,State) ->
-    lists:foreach(fun(Server) ->
-                          case Server =:= self() of
-                              true ->
-                                  csi:cast(Server,'$stats_stop');
-                              _ ->
-                                  csi:stats_stop(Server)
-                          end
-                  end,
-                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
-    {ok,State}.
 
 process_foo(_Args,State) ->
     {hello_world,State}.
@@ -105,4 +73,39 @@ process_crashing(Args,State) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+stats_start_all() ->
+    lists:foreach(fun(Server) ->
+                          case Server =:= self() of
+                              true ->
+                                  ok;
+                              _ ->
+                                  csi:stats_start(Server)
+                          end
+                  end,
+                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
+
+stats_stop_all() ->
+    lists:foreach(fun(Server) ->
+                          case Server =:= self() of
+                              true ->
+                                  ok;
+                              _ ->
+                                  csi:stats_stop(Server)
+                          end
+                  end,
+                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
+
+collect_services_status(OwnState) ->
+    lists:foldl(fun(Server,Acc) ->
+                        Status = case Server =:= self() of
+                                     true ->
+                                         OwnState;
+                                     _ ->
+                                         csi:service_status(Server)
+                                 end,
+                        [{erlang:process_info(Server, registered_name),Status}
+                             | Acc]
+                end,
+                [],
+                pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
 

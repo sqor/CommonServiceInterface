@@ -165,8 +165,15 @@ init({Name, Module, InitArgs}) ->
 handle_call(stop,_From,State) ->
     {stop,normal,ok,State};
 
+handle_call('$collect_services_status',_From,State) ->
+    {reply,csi_service:collect_services_status(State),State};
+
 handle_call('$service_status',_From,State) ->
     {reply,State,State};
+
+handle_call('$stats_start_all',From,State) ->
+    csi_service:stats_start_all(),
+    handle_call('$stats_start',From,State);
 
 handle_call('$stats_start',_From,State) ->
     NewState = State#rstate{stats_collect = true},
@@ -175,6 +182,10 @@ handle_call('$stats_start',_From,State) ->
 handle_call('$stats_stop',_From,State) ->
     NewState = State#rstate{stats_collect = false},
     {reply,ok,NewState};
+
+handle_call('$stats_stop_all',From,State) ->
+    csi_service:stats_stop_all(),
+    handle_call('$stats_stop',From,State);
 
 handle_call({'$stats_include_funs',FunctionList}, From, State)
   when is_atom(FunctionList) ->
