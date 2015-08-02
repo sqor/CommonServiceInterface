@@ -21,12 +21,18 @@
 
 -record(csi_service_state,{}).
 
+-export([service_status/2,
+         stats_start/2,
+         stats_stop/2
+        ]).
+
 -export([process_foo/2,
          process_too_long/2,
          process_crashing/2]).
 
 % init the global service
 init_service(_InitArgs) ->
+%    csi:unregister(),
     {ok,#csi_service_state{}}.
 
 % init paralell process
@@ -45,6 +51,45 @@ terminate(Reason,_State) ->
 
 terminate_service(_Reason,_State) ->
     ok.
+
+service_status(_Args,State) ->
+    {lists:foldl(fun(Server,Acc) ->
+                         Status = case Server =:= self() of
+                                      true ->
+                                          State;
+                                      _ ->
+                                          csi:service_status(Server)
+                                  end,
+                         [{erlang:process_info(Server, registered_name),Status}
+                              | Acc]
+                 end,
+                 [],
+                 pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
+     State}.
+
+stats_start(_Args,State) ->
+    lists:foreach(fun(Server) ->
+                          case Server =:= self() of
+                              true ->
+                                  csi:cast(Server,'$stats_start');
+                              _ ->
+                                  csi:stats_start(Server)
+                          end
+                  end,
+                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
+    {ok,State}.
+
+stats_stop(_Args,State) ->
+    lists:foreach(fun(Server) ->
+                          case Server =:= self() of
+                              true ->
+                                  csi:cast(Server,'$stats_stop');
+                              _ ->
+                                  csi:stats_stop(Server)
+                          end
+                  end,
+                  pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)),
+    {ok,State}.
 
 process_foo(_Args,State) ->
     {hello_world,State}.

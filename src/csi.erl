@@ -21,21 +21,22 @@
           start/3,
           start_link/3,
           stop/1,
+          service_status/0,
+          service_status/1,
+          call_p/2,
           call_p/3,
           call_p/4,
+          call_s/2,
           call_s/3,
           call_s/4,
           call/2,
           call/3,
-          cast_p/3,
-          cast_p/4,
-%%           cast_f/3,
-%%           cast_f/4,
-%%           cast/2,
-%%           cast/3,
+          cast/2,
           post_p/3,
           post_p/4,
+          stats_start/0,
           stats_start/1,
+          stats_stop/0,
           stats_stop/1,
           stats_include_funs/2,
           stats_exclude_funs/2,
@@ -47,7 +48,9 @@
           stats_include_type/2,
           stats_exclude_type/2,
           stats_get_process_table/1,
-          stats_change_module/2
+          stats_change_module/2,
+          register/0,
+          unregister/0
         ]).
 
 -export([process_foo/1,
@@ -79,10 +82,27 @@ stop(ServerName) ->
                     stop,
                     ?DEFAULT_SERVER_TIMEOUT).
 
+service_status() ->
+    csi:call_s(?CSI_SERVICE_NAME,
+               service_status).
+
+service_status(ServerName) ->
+    gen_server:call(ServerName,
+                    '$service_status',
+                    ?DEFAULT_SERVER_TIMEOUT).
+
+stats_start() ->
+    call_s(?CSI_SERVICE_NAME,
+           stats_start).
+
 stats_start(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_start',
                     ?DEFAULT_SERVER_TIMEOUT).
+
+stats_stop() ->
+    call_s(?CSI_SERVICE_NAME,
+           stats_stop).
 
 stats_stop(ServerName) ->
     gen_server:call(ServerName,
@@ -144,9 +164,10 @@ stats_change_module(ServerName,Module) ->
                     {'$stats_change_module',Module},
                     ?DEFAULT_SERVER_TIMEOUT).
 
+call_p(ServerName,Request) ->
+    call_p(ServerName,Request,[],?DEFAULT_SERVER_TIMEOUT).
 call_p(ServerName, Request, Args) ->
-    call_p(ServerName, Request,Args,?DEFAULT_SERVER_TIMEOUT)
-.
+    call_p(ServerName, Request,Args,?DEFAULT_SERVER_TIMEOUT).
 call_p(ServerName, Request, Args, TimeoutForProcessing) ->
     csi_utils:call_server(ServerName,
                           {call_p, Request, Args, TimeoutForProcessing},
@@ -154,24 +175,8 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           ?DEFAULT_SERVICE_SLEEP,
                           ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
 
-cast_p(ServerName, Request, Args) ->
-    cast_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
-cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
-    csi_utils:call_server(ServerName,
-                          {cast_p, Request, Args, TimeoutForProcessing},
-                          ?DEFAULT_SERVICE_RETRY,
-                          ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
-
-post_p(ServerName, Request, Args) ->
-    post_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
-post_p(ServerName, Request, Args, TimeoutForProcessing) ->
-    csi_utils:call_server(ServerName,
-                          {post_p, Request, Args, TimeoutForProcessing},
-                          ?DEFAULT_SERVICE_RETRY,
-                          ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
-
+call_s(ServerName,Request) ->
+    call_s(ServerName,Request,[],?DEFAULT_SERVER_TIMEOUT).
 call_s(ServerName, Request, Args) ->
     call_s(ServerName, Request,Args,?DEFAULT_SERVER_TIMEOUT).
 call_s(ServerName, Request, Args, TimeoutForProcessing) ->
@@ -190,6 +195,14 @@ call(ServerName, Request, TimeoutForProcessing) ->
                           ?DEFAULT_SERVICE_SLEEP,
                           ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
 
+post_p(ServerName, Request, Args) ->
+    post_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
+post_p(ServerName, Request, Args, TimeoutForProcessing) ->
+    csi_utils:call_server(ServerName,
+                          {post_p, Request, Args, TimeoutForProcessing},
+                          ?DEFAULT_SERVICE_RETRY,
+                          ?DEFAULT_SERVICE_SLEEP,
+                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
 %% @TODO implement cast_server in cu
 %% cast_f(ServerName, Request, Args) ->
 %%     cast_f(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
@@ -201,16 +214,14 @@ call(ServerName, Request, TimeoutForProcessing) ->
 %%                    ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing))
 %% .
 %% 
-%% cast(ServerName, Request) ->
-%%     cast(ServerName, Request, ?DEFAULT_SERVER_TIMEOUT).
-%% cast(ServerName, Request, TimeoutForProcessing) ->
-%%     csi_utils:cast_server(ServerName,
-%%                    Request,
-%%                    ?DEFAULT_SERVICE_RETRY,
-%%                    ?DEFAULT_SERVICE_SLEEP,
-%%                    ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing))
-%% .
+cast(ServerName, Request) ->
+     gen_server:cast(ServerName,
+                     {cast, Request}).
+register() ->
+    pg2:join(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
 
+unregister() ->
+    pg2:leave(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
 
 % Test functions
 process_foo(From) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,From).

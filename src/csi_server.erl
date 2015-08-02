@@ -112,6 +112,8 @@ init({Name, Module, InitArgs}) ->
     process_flag(trap_exit, true),
     StatTable = ets:new(Name, [private]),
     ProcTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_procs"),[private]),
+    pg2:create(?CSI_SERVICE_PROCESS_GROUP_NAME),
+    csi:register(),
     try case Module:init_service(InitArgs) of
             {ok,SState} ->
                 {ok,#rstate{service_name = Name,
@@ -163,6 +165,9 @@ init({Name, Module, InitArgs}) ->
 handle_call(stop,_From,State) ->
     {stop,normal,ok,State};
 
+handle_call('$service_status',_From,State) ->
+    {reply,State,State};
+
 handle_call('$stats_start',_From,State) ->
     NewState = State#rstate{stats_collect = true},
     {reply,ok,NewState};
@@ -177,16 +182,16 @@ handle_call({'$stats_include_funs',FunctionList}, From, State)
 
 handle_call({'$stats_include_funs',FunctionList},_From,State) ->
     % first remove the functions from the exclude list
-    ExcludeList = remove_elems_from_list(FunctionList,
-                                         State#rstate.stats_requests_exclude),
+    ExcludeList = csi_utils:remove_elems_from_list(FunctionList,
+                                                   State#rstate.stats_requests_exclude),
     % second include it in stats requests if it does not contain all
     NewState = case lists:member(all, State#rstate.stats_requests_include) of
                    true ->
                        State#rstate{stats_requests_exclude = ExcludeList};
                    _ ->
                        % add to the list of requests if it is not there
-                       IncludeList = add_elems_to_list(FunctionList,
-                                                       State#rstate.stats_requests_include),
+                       IncludeList = csi_utils:add_elems_to_list(FunctionList,
+                                                                 State#rstate.stats_requests_include),
                        State#rstate{stats_requests_exclude = ExcludeList,
                                     stats_requests_include = IncludeList}
                end,
@@ -198,11 +203,11 @@ handle_call({'$stats_exclude_funs',FunctionList}, From, State)
 
 handle_call({'$stats_exclude_funs',FunctionList},_From,State) ->
     % first, remove it from the requests
-    IncludeList = remove_elems_from_list(FunctionList,
-                                         State#rstate.stats_requests_include),
+    IncludeList = csi_utils:remove_elems_from_list(FunctionList,
+                                                   State#rstate.stats_requests_include),
     % second, add it to the exclude list
-    ExcludeList = add_elems_to_list(FunctionList,
-                                    State#rstate.stats_requests_exclude),
+    ExcludeList = csi_utils:add_elems_to_list(FunctionList,
+                                              State#rstate.stats_requests_exclude),
     NewState = State#rstate{stats_requests_exclude = ExcludeList,
                          stats_requests_include = IncludeList},
     {reply,ok,NewState};
@@ -217,9 +222,10 @@ handle_call({'$stats_set_funs',FunctionList},_From,State) ->
     {reply,ok,NewState};
 
 handle_call('$stats_get_all',_From,State) ->
-    Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-                                             [io_lib:format("~p~n", [X])|AccIn]
-                                    end, [], State#rstate.stat_table)),
+%%     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
+%%                                              [io_lib:format("~p~n", [X])|AccIn]
+%%                                     end, [], State#rstate.stat_table)),
+    Reply = ets:tab2list(State#rstate.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_funs',FunctionList},_From,State)
@@ -228,9 +234,7 @@ handle_call({'$stats_get_funs',FunctionList},_From,State)
 
 handle_call({'$stats_get_funs',_FunctionList},_From,State) ->
     %% @TODO return the stats for only the functions in the Functionlist
-    Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-                                             [io_lib:format("~p~n", [X])|AccIn]
-                                    end, [], State#rstate.stat_table)),
+    Reply = ets:tab2list(State#rstate.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_types',TypeList},_From,State)
@@ -239,22 +243,16 @@ handle_call({'$stats_get_types',TypeList},_From,State)
 
 handle_call({'$stats_get_types',_TypeList},_From,State) ->
     %% @TODO return the stats for only the types in the Typelist
-    Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-                                             [io_lib:format("~p~n", [X])|AccIn]
-                                    end, [], State#rstate.stat_table)),
+    Reply = ets:tab2list(State#rstate.stat_table),
     {reply,Reply,State};
 
 handle_call({'$stats_get_specific',_Function,_Type},_From,State) ->
     %% @TODO return the stats for only the function for a type
-    Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-                                             [io_lib:format("~p~n", [X])|AccIn]
-                                    end, [], State#rstate.stat_table)),
+    Reply = ets:tab2list(State#rstate.stat_table),
     {reply,Reply,State};
 
 handle_call('$stats_get_process_table',_From,State) ->
-    Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-                                             [io_lib:format("~p~n", [X])|AccIn]
-                                    end, [], State#rstate.stats_process_table)),
+    Reply = ets:tab2list(State#rstate.stats_process_table),
     {reply,Reply,State};
 
 handle_call({'$stats_include_type',TypeList}, From, State)
@@ -262,8 +260,8 @@ handle_call({'$stats_include_type',TypeList}, From, State)
     handle_call({'$stats_include_type',[TypeList]}, From, State);
 
 handle_call({'$stats_include_type',TypeList},_From,State) ->
-    IncludeList = add_elems_to_list(TypeList,
-                                    State#rstate.stats_types),
+    IncludeList = csi_utils:add_elems_to_list(TypeList,
+                                              State#rstate.stats_types),
     NewState = State#rstate{stats_types = IncludeList},
     {reply,ok,NewState};
 
@@ -273,8 +271,8 @@ handle_call({'$stats_exclude_type',TypeList}, From, State)
 
 handle_call({'$stats_exclude_type',TypeList},_From,State) ->
     % first, remove it from the requests
-    ExcludeList = remove_elems_from_list(TypeList,
-                                         State#rstate.stats_types),
+    ExcludeList = csi_utils:remove_elems_from_list(TypeList,
+                                                   State#rstate.stats_types),
     NewState = State#rstate{stats_types = ExcludeList},
     {reply,ok,NewState};
 
@@ -417,6 +415,11 @@ process_service_request(From,Module,Request,Args,State,
     NewState :: term(),
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
+handle_cast({cast,Request}, State) ->
+    handle_call(Request, self(), State),
+    {noreply, State};
+
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -555,24 +558,6 @@ collect_stats(Stage,State,Request,R,Ref) ->
         _ ->
             ok
     end.
-
-add_elems_to_list(ElemList,List) ->
-    lists:foldl(fun (Elem, AccIn) ->
-                         case lists:member(Elem, AccIn) of
-                             true ->
-                                 AccIn;
-                             _ ->
-                                 AccIn ++ [Elem]
-                         end
-                end,
-                List,
-                ElemList).
-
-remove_elems_from_list(ElemList,List) ->
-    lists:filter(fun (Elem) ->
-                          lists:member(Elem, ElemList)
-                 end,
-                 List).
 
 stats_to_collect(Request,State) ->
     case lists:member(all,State#rstate.stats_requests_include) of

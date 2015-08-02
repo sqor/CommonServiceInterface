@@ -18,7 +18,10 @@
 
 
 -export([now_usec/0,
-         timestamp_to_usec/1]).
+         timestamp_to_usec/1,
+         add_elems_to_list/2,
+         remove_elems_from_list/2
+        ]).
 
 -export([call_server/2,
          call_server/3,
@@ -31,6 +34,24 @@ now_usec() ->
 
 timestamp_to_usec({MegaSecs,Secs,MicroSecs}) ->
     (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
+
+add_elems_to_list(ElemList,List) ->
+    lists:foldl(fun (Elem, AccIn) ->
+                         case lists:member(Elem, AccIn) of
+                             true ->
+                                 AccIn;
+                             _ ->
+                                 AccIn ++ [Elem]
+                         end
+                end,
+                List,
+                ElemList).
+
+remove_elems_from_list(ElemList,List) ->
+    lists:filter(fun (Elem) ->
+                          lists:member(Elem, ElemList)
+                 end,
+                 List).
 
 %% watchdog_create/2
 %% @doc Spawns a process for watchdog_loop/3.
