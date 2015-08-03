@@ -17,9 +17,7 @@
          watchdog_loop/3]).
 
 
--export([now_usec/0,
-         timestamp_to_usec/1,
-         add_elems_to_list/2,
+-export([add_elems_to_list/2,
          remove_elems_from_list/2
         ]).
 
@@ -28,12 +26,6 @@
          call_server/4,
          call_server/5
         ]).
-
-now_usec() ->
-    timestamp_to_usec(os:timestamp()).
-
-timestamp_to_usec({MegaSecs,Secs,MicroSecs}) ->
-    (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
 
 add_elems_to_list(ElemList,List) ->
     lists:foldl(fun (Elem, AccIn) ->

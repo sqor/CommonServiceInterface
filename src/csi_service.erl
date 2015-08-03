@@ -19,7 +19,7 @@
          terminate/2,
          terminate_service/2]).
 
--record(csi_service_state,{}).
+-record(csi_server_state,{}).
 
 -export([stats_start_all/0,
          stats_stop_all/0,
@@ -39,7 +39,7 @@ init_service(_InitArgs) ->
     {ok,#csi_service_state{}}.
 
 % init paralell process
-init(_Args,_ServiceState = #csi_service_state{}) ->
+init(_Args,_ServiceState = #csi_server_state{}) ->
     {ok,undefined}.
 
 % terminate parallell process
