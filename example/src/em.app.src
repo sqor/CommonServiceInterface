@@ -1,0 +1,16 @@
+{application, em, [
+	{description, "EM service"},
+	{vsn, "0.0.1"},
+	{id, "git"},
+	{modules, []},
+	{registered, []},
+	{applications, [
+	    csi,
+        compiler,
+		kernel,
+		stdlib,
+		goldrush,
+		lager
+	]},
+	{env, []}
+]}.
