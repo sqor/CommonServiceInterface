@@ -354,15 +354,31 @@ handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
     {reply, {casted,{Pid,csi_service_state}} , State};
 
 handle_call(Request, From, State) ->
-%    collect_stats(start,State,Request,Request,Ref = make_ref()),
+    collect_stats(start,State,Request,Request,Ref = make_ref()),
     Module = State#csi_service_state.service_module,
-    case Module:handle_call(Request,From,State#csi_service_state.service_state) of
-        {reply, Reply, NewState} -> {reply, Reply, State#csi_service_state{service_state = NewState}};
-        {reply, Reply, NewState, Timeout} -> {reply, Reply, State#csi_service_state{service_state = NewState},Timeout};
-        {noreply, NewState} -> {noreply, State#csi_service_state{service_state = NewState}};
-        {noreply, NewState, Timeout} -> {noreply, State#csi_service_state{service_state = NewState},Timeout};
-        {stop, Reason, Reply, NewState} -> {stop, Reason, Reply, State#csi_service_state{service_state = NewState}};
-        {stop, Reason, NewState} -> {stop, Reason, State#csi_service_state{service_state = NewState}}
+    try
+        ReturnValue = Module:handle_call(Request,From,State#csi_service_state.service_state),
+        collect_stats(stop, State, Request, Request, Ref),
+        case  ReturnValue of
+            {reply, Reply, NewState} -> {reply, Reply, State#csi_service_state{service_state = NewState}};
+            {reply, Reply, NewState, Timeout} -> {reply, Reply, State#csi_service_state{service_state = NewState},Timeout};
+            {noreply, NewState} -> {noreply, State#csi_service_state{service_state = NewState}};
+            {noreply, NewState, Timeout} -> {noreply, State#csi_service_state{service_state = NewState},Timeout};
+            {stop, Reason, Reply, NewState} -> {stop, Reason, Reply, State#csi_service_state{service_state = NewState}};
+            {stop, Reason, NewState} -> {stop, Reason, State#csi_service_state{service_state = NewState}}
+        end
+    catch
+        A:B ->
+            ?LOGFORMAT(error,
+                       "Exception in service when calling ~p:handle_call(~p)."
+                       " ~p:~p. Stacktrace:~p~n",
+                       [Module,
+                        Request,
+                        A,
+                        B,
+                        erlang:get_stacktrace()]),
+            collect_stats(clean,State,Request,Request,Ref),
+            {reply,{error,exception},State}
     end.
 
 process_service_request(From,Module,Request,Args,State,

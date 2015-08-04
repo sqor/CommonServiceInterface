@@ -30,8 +30,8 @@
           call_s/2,
           call_s/3,
           call_s/4,
-          call/2,
           call/3,
+          call/4,
           cast/2,
           post_p/3,
           post_p/4,
@@ -54,7 +54,8 @@
           unregister/0
         ]).
 
--export([process_foo_call_p/1,
+-export([list_macros/0,
+         process_foo_call_p/1,
          process_too_long_call_p/1,
          process_crashing_call_p/1,
          process_foo_call_s/1,
@@ -504,29 +505,31 @@ call_s(ServerName, Request, Args, TimeoutForProcessing) ->
                           ?DEFAULT_SERVICE_SLEEP,
                           ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
 
-%% call/2
+%% call/3
 %% ====================================================================
 %% @doc call the handle_call service function serialized
 %% @end
 -spec call(ServerName :: atom(),
-           Request :: term()) -> Reply when
+           Request :: term(),
+           Args :: term()) -> Reply when
     Reply :: term().
 %% ====================================================================
-call(ServerName, Request) ->
-    call(ServerName, Request, ?DEFAULT_SERVER_TIMEOUT).
+call(ServerName, Request, Args) ->
+    call(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
 
-%% call/3
+%% call/4
 %% ====================================================================
 %% @doc call the handle_call service function serialized with timeout
 %% @end
 -spec call(ServerName :: atom(),
            Request :: term(),
+           Args :: term(),
            TimeoutForProcessing :: infinity | integer()) -> Reply when
     Reply :: term().
 %% ====================================================================
-call(ServerName, Request, TimeoutForProcessing) ->
+call(ServerName, Request, Args, TimeoutForProcessing) ->
     csi_utils:call_server(ServerName,
-                          Request,
+                          {Request,Args},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
                           ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
@@ -603,18 +606,38 @@ unregister() ->
     pg2:leave(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
 
 % Test functions
-process_foo_call(From) -> csi:call(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long_call(From) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing_call(From) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,From).
-process_foo_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,From).
-process_foo_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,From).
-process_foo_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,From).
-process_foo_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,From).
+list_macros() ->
+    ?LOGFORMAT(info,"CSI_SERVICE_NAME:~p~n"
+               "CSI_SERVICE_MODULE:~p~n"
+               "CSI_SERVER_MODULE:~p~n"
+               "CSI_SERVICE_PROCESS_GROUP_NAME:~p~n"
+               "DEFAULT_SERVICE_RETRY:~p~n"
+               "DEFAULT_SERVICE_SLEEP:~p~n"
+               "DEFAULT_SERVER_TIMEOUT:~p~n"
+               "LOGTYPE:~p~n",
+               [?CSI_SERVICE_NAME,
+                ?CSI_SERVICE_MODULE,
+                ?CSI_SERVER_MODULE,
+                ?CSI_SERVICE_PROCESS_GROUP_NAME,
+                ?DEFAULT_SERVICE_RETRY,
+                ?DEFAULT_SERVICE_SLEEP,
+                ?DEFAULT_SERVER_TIMEOUT,
+                ?LOGTYPE
+               ]
+    ).   
+    
+process_foo_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_crashing,Args).
+process_foo_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,Args).
+process_foo_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,Args).
+process_foo_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,Args).
+process_foo_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,Args).

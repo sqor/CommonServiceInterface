@@ -61,9 +61,10 @@ services(_Args,State) ->
     {[erlang:process_info(X, registered_name) || X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
      State}.
 
-handle_call(Request,_From,State) ->
-    ?LOGFORMAT(warning,"Unhandled request:~p for csi_service with state:~p",[Request,State]),
-    {reply,undefined,State}.
+handle_call({Request,Args},_From,State) ->
+    ?LOGFORMAT(warning,"Unhandled request:~p for csi_service with state:~p~n",[Request,State]),
+    {Reply,NewState} = ?MODULE:Request(Args,State),
+    {reply,Reply,NewState}.
 
 process_foo(_Args,State) ->
     {hello_world,State}.

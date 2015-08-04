@@ -20,6 +20,6 @@ start_link() -> csi:start_link(?SERVICE_NAME,?SERVICE_MODULE).
 
 stop() -> csi:stop(?SERVICE_NAME).
 
-process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[From]).
-process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[From]).
-process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[From]).
+process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[Atom]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[Atom]).
+process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[Atom]).

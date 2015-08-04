@@ -12,12 +12,14 @@
 
 -ifdef(lager).
 -compile([{parse_transform, lager_transform}]).
+-define(LOGTYPE,"lager").
 -define(LOGFORMAT(Level,Format,Args),
         ok = lager:Level(Format,Args)).
 -define(LOGMSG(Level,Format),
         ok = lager:Level(Format)).
 
 -else.
+-define(LOGTYPE,"io:format").
 -define(LOGFORMAT(Level,Format,Args),
         ok = io:format("~p: ~s",[Level,io_lib:format(Format, Args)])).
 -define(LOGMSG(Level,Format),
@@ -27,7 +29,7 @@
 
 -ifdef(debug).
 -define(DEFAULT_SERVER_TIMEOUT,infinity).
--define(CALCULATED_SERVER_TIMEOUT(Timeout),Timeout).
+-define(CALCULATED_SERVER_TIMEOUT(Timeout),Timeout+Timeout).
 -else.
 -define(DEFAULT_SERVER_TIMEOUT,5000).
 -define(CALCULATED_SERVER_TIMEOUT(Timeout),Timeout+?DEFAULT_SERVER_TIMEOUT).
