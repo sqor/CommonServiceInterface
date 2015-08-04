@@ -1,6 +1,101 @@
 # SQ2_CommonServiceInterface
 
-# ALPHA VERSION UNDER CONSTRUCTION.
+# ALPHA VERSION USE WITH CARE
+
+## requisites
+Use erlang.mk and relx
+
+# Quick start on using CSI
+In your application root directory, make sure the following are inserted into your Makefile
+
+    PROJECT = yourapplicationname
+    DEPS = csi
+    
+    dep_csi = git git@github.com:Amplify-Social/SQ2_CommonServiceInterface.git master
+
+    include erlang.mk
+
+    # Compile flags
+    # if you want to have lager used by CSI include -Dlager
+    # 
+    ERLC_COMPILE_OPTS= -Dlager
+
+    # Use the same settings for compiling releases as well as for testing
+    ERLC_OPTS= $(ERLC_COMPILE_OPTS)
+    TEST_ERLC_OPTS= $(ERLC_COMPILE_OPTS)
+
+Include csi in your relx.config, similar to this:
+
+    {release, {your_server, "0.0.1"},
+              [csi,
+               your_server,
+               runtime_tools]}.
+    {extend_start_script, true}.
+    
+In your app.src file, include csi in the applications section.
+
+    $>make
+    
+You will have csi included in your application from now on.
+    
+# Quick Start with the example
+Clone the repo, go to its directory.
+
+    cd example
+    make run
+
+You will have an erlang shell. Here is how to play with it:
+
+    (em_server@127.0.0.1)1> em:start().
+    {ok,<0.83.0>}
+    (em_server@127.0.0.1)2> em:
+    module_info/0       module_info/1       process_crashing/1
+    process_foo/1       process_too_long/1  start/0
+    start_link/0        stop/0
+    (em_server@127.0.0.1)2> em:process_foo(test).
+    hello_world
+    (em_server@127.0.0.1)3> em:process_too_long(test).
+    {error,timeout_killed}
+    (em_server@127.0.0.1)4> em:process_crashing(test).
+    {error,exception}
+    (em_server@127.0.0.1)5> 19:36:30.489 [error] Exception in service when calling em_service:process_crashing([test]). error:badarith. Stacktrace:[{em_service,process_crashing,2,[{file,"src/em_service.erl"},{line,46}]},{csi_server,process_service_request,8,[{file,"src/csi_server.erl"},{line,402}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,237}]}]
+    19:36:30.490 [error] CRASH REPORT Process <0.89.0> with 0 neighbours exited with reason: exception in csi_server:process_service_request/8 line 425
+    
+    (em_server@127.0.0.1)5> csi:stats_get_all(em_service).
+    [{{response_time,process_foo},{1,106,106.0,106,106}}]
+    (em_server@127.0.0.1)6> csi:services
+    services/0         services_status/0
+    (em_server@127.0.0.1)6> csi:services_status().
+    [{{registered_name,em_service},
+      {csi_service_state,em_service,em_service,
+                         {em_state},
+                         true,36888,40985,csi_stats,
+                         [all],
+                         [],
+                         [{response_time,[{"last_nth_to_collect",10},
+                                          {"normalize_to_nth",8}]}]}},
+     {{registered_name,csi_service},
+      {csi_service_state,csi_service,csi_service,
+                         {csi_service_state},
+                         true,20500,24597,csi_stats,
+                         [all],
+                         [],
+                         [{response_time,[{"last_nth_to_collect",10},
+                                          {"normalize_to_nth",8}]}]}}]
+    (em_server@127.0.0.1)7> em:stop().
+    ok
+    (em_server@127.0.0.1)8>
+    
+And if you use lager, here is what you find in the console.log after the sequence above:
+
+    2015-08-04 19:35:35.973 [info] <0.7.0> Application lager started on node 'em_server@127.0.0.1'
+    2015-08-04 19:35:35.980 [info] <0.7.0> Application csi started on node 'em_server@127.0.0.1'
+    2015-08-04 19:35:35.980 [info] <0.7.0> Application em started on node 'em_server@127.0.0.1'
+    2015-08-04 19:35:35.984 [info] <0.7.0> Application runtime_tools started on node 'em_server@127.0.0.1'
+    2015-08-04 19:36:30.489 [error] <0.89.0>@csi_server:process_service_request:415 Exception in service when calling em_service:process_crashing([test]). error:badarith. Stacktrace:[{em_service,process_crashing,2,[{file,"src/em_service.erl"},{line,46}]},{csi_server,process_service_request,8,[{file,"src/csi_server.erl"},{line,402}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,237}]}]
+    2015-08-04 19:36:30.490 [error] <0.89.0> CRASH REPORT Process <0.89.0> with 0 neighbours exited with reason: exception in csi_server:process_service_request/8 line 425
+
+# Road to use CSI
 
 ## Introduction
 In an Erlang application, usually we have a number of services communicating themselves to fulfill the incoming requests from the clients. These services are implemented by writing gen_server code most of the time. Some of them may be processor intensive, others could be I/O intensive. When we face to a situation where our system slows down, it is hard to find the root cause of the performance degradation. We may have some clue, which service (or gen_server) takes the resources, causing the bottleneck, on the other hand if we are able to measure basic metrics for all the services, the quest for the root cause turns to be much easier.
@@ -33,7 +128,7 @@ For a given service, this is all what is needed to set up the API.
 
 As the CSI server is the gen_server for the service, it handles the call made in the service.erl API in it's handle_call function, by calling the callback module's function(Parameters). The callback module shall return the Results to the CSI gen_server that will forward it back to the original requester.
 
-## Real World example.
+## A tiny example.
 In order to quickly understand the usage of CSI, we will implement a small service, called em_service that provides three functionalities:
 
 1. process_foo(Atom). - Returns the atom hello_world.
@@ -43,15 +138,15 @@ In order to quickly understand the usage of CSI, we will implement a small servi
 As you will see, there are two main parts of our em_service.erl callback module:
 
 ### 1. Beavioural functions
-Implementing a service needs some housekeeping. When the service server is launched through a start() or start_link(), the init_service function is called. Here, the service shall initialize it's state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the service state when starting to process each and every request.
+Implementing a service needs some housekeeping. When the service server is launched through a start() or start_link(), the init_service function is called in the callback module. Here, the service shall initialize it's global state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the global state when starting to process each and every request.
 
 terminate_service is the counterpart of init_service. It is called when the service is being terminated, so this is the last place where the cleanups shall be executed before a service shuts down.
 
-When a request reaches the server, it calls the callback module's init function to initialize the processing thread. It shall return with a state that is used during the processing of a specific request. Here a DB connection could be taken from a pool for example and pass it back.
+When a request reaches the server, it calls the callback module's init(Args,ServiceState) function to initialize the processing thread. It shall return with {ok,RequestState} that is used during  processing of a specific request. Here a DB connection could be taken from a pool for example and pass it back as part of the RequestState.
 
-When init returned with {ok,RequestProcessingState} our gen_server calls the function that will actually process the request. These are the functions that can be found in the Second part of the callback module, and called as Service Functions.
+When init returned with {ok,RequestState} our gen_server calls the function that will actually process the request. These are the functions that can be found in the Second part of the callback module, and called as Service Functions.
 
-When the request is processed, our gen_server finally calls terminate(Reason,RequestProcessingState) callback function to have a cleanup after processing a single request.
+When the request is processed, our gen_server finally calls terminate(Reason,RequestState) callback function to have a cleanup after processing a single request.
 
 ### 2. Service functions
 The implementation for the service functions goes to em_service.erl:
@@ -59,27 +154,32 @@ The implementation for the service functions goes to em_service.erl:
 -module(em_service).
 -behaviour(csi_server).
 
-%% ====================================================================
-%% Behavioural functions
-%% ====================================================================
 %% General state of the service
 -record(em_state,{}).
 
 %% Lifecycle State for every requests'
--record(em_session_state{}).
+-record(em_session_state,{}).
 
 -export([init_service/1,
          init/2,
          terminate/2,
          terminate_service/2]).
 
+-export([process_foo/2,
+         process_too_long/2,
+         process_crashing/2]).
+
+
+%% ====================================================================
+%% Behavioural functions
+%% ====================================================================
 init_service(_InitArgs) ->
     {ok,#em_state{}}.
 
-init(_Args,ServiceState) ->
+init(_Args,_ServiceState) ->
     {ok,#em_session_state{}}.
 
-terminate(Reason,_State) ->
+terminate(_Reason,_State) ->
     ok.
     
 terminate_service(_Reason,_State) ->
@@ -88,10 +188,6 @@ terminate_service(_Reason,_State) ->
 %% ====================================================================
 %% Service functions
 %% ====================================================================
--export([process_foo/2,
-         process_too_long/2,
-         process_crashing/2]).
-
 process_foo(_Args,State) ->
     {hello_world,State}.
 
@@ -139,8 +235,69 @@ start_link() -> csi:start_link(?SERVICE_NAME,?SERVICE_MODULE).
 
 stop() -> csi:stop(?SERVICE_NAME).
 
-process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[From]).
-process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[From]).
-process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[From]).
+process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[Atom]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[Atom]).
+process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[Atom]).
 ```
-#To Be Continued.....
+
+As CSI is itself a service, it's statistical and status functionalities are implemented using itself. For a more complex service, you may want to look at csi.erl for the API of CSI itself, csi_service.erl to have some feeling how a more complex service is implemented or csi_server.erl where all the magic happens.
+
+# Extending CSI functionality
+There is an example of collecting statistics for any service using CSI. Response time for request is an essential statistics we may need for checking the health of our system.
+
+CSI implements a kind of statistical framework. When a request is get processed, CSI calls all the statistics that was given to it through its csi:stats_include_type(service_name,stat_type) API, where stat_type is the name of the function in the given statistics module (default is csi_stats.erl). The stats module shall implement the functions for the types. For example if there is a stat_type named response_time, there shall be a corresponding function in the stats module with the following header:
+
+    response_time(Stage,Request,FullRequest,Ref,Params,Tab) ->
+    
+Where the arguments are the following:
+
+- Stage. There are three possible values the Stage can have:
+    1. start. The processing of a request is about to be started.
+    2. stop. The processing of the request has finished
+    3. clean. There was some problem and the request processing shall not be measured, so clean up if there was something set up at start.
+    
+- Request. This is the function name as an atom that will be called to process the request.
+
+- FullRequest. A tuple, containing internal request data:
+    {ProcessingStrategy,Request,Arguments}
+    ProcessingStrategy can be several atoms, it tells whether the incoming request is processed via a call, post or cast and also it tells whether the processing is done in parallel or serialized.
+    Arguments are the parameters the callback function for processing the request will get.
+    
+- Ref. Unique reference of the request. Use this to identify the request in the start, stop and clean stage.
+
+- Params. Parameters of a statistic type. It is a property list that can be modified in runtime.
+
+- Tab. An ets table. Here you can save intermediate or persistent information. The suggested practice of using this table is that the key shall be a tuple with two atoms, like {stat_type,request} or {stat_type_temporaryvalue,Ref} and the value can be stats specific.
+
+### Example
+In case of the already implemented response_time metric, there is a corresponding function in csi_stats.erl. When it is called with Stage = start, it saves the os:timestamp() value into the ets table with the following call:
+
+    response_time(start,_Request,_R,Ref,_Params,Tab) ->
+        ets:insert(Tab, {{response_time_first,Ref},csi_utils:now_usec()}).
+
+Next time the function is called shall be with Stage = stop. The response_time function, reads the above key from the ets table, makes some calculations and writes the statistics back to the table:
+
+    ets:insert(Tab, {{response_time,Request},{NrOfRequests,
+                                              CumulatedResponseTime,
+                                              CumulatedResponseTime/NrOfRequests,
+                                              MinRT,
+                                              MaxRT}})
+                                              
+In case it is called with Stage = clean instead, it just simply deletes the key from the ets table:
+
+    ets:delete(Tab, {response_time_first,Else})
+    
+And this goes on. There are numerous possibilities to turn statistics for a given service, function or stats_type on and off, and this can be done at runtime. Take a look at csi_server.erl for more details.
+
+For example:
+
+    (em_server@127.0.0.1)14> csi:stats_get_all(em_service).
+    [{{response_time,process_foo},{3,243,81.0,78,85}}]
+    (em_server@127.0.0.1)15>
+
+meaning there were 3 request for process_foo, the total time processing these requests was 243 usecs, The average time was 81 usecs, fastest request processing was 78 usecs, slowest was 85 usecs
+
+Feel free to come up with more lightweight stats!
+
+## Please share your thoughts, suggest improvements, find bugs and report them!
+    
