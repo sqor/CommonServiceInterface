@@ -7,11 +7,22 @@
 
 -define(DEFAULT_SERVICE_RETRY,2).
 -define(DEFAULT_SERVICE_SLEEP,200).
+
 -ifndef(LOGFORMAT).
+
+-ifdef(lager).
+-compile([{parse_transform, lager_transform}]).
 -define(LOGFORMAT(Level,Format,Args),
         ok = lager:Level(Format,Args)).
 -define(LOGMSG(Level,Format),
         ok = lager:Level(Format)).
+
+-else.
+-define(LOGFORMAT(Level,Format,Args),
+        ok = io:format("~p: ~s",[Level,io_lib:format(Format, Args)])).
+-define(LOGMSG(Level,Format),
+        ok = io:format("~p: ~s",[Level,Format]).
+-endif.
 -endif.
 
 -ifdef(debug).

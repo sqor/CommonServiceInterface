@@ -54,9 +54,21 @@
           unregister/0
         ]).
 
--export([process_foo/1,
-         process_too_long/1,
-         process_crashing/1]).
+-export([process_foo_call_p/1,
+         process_too_long_call_p/1,
+         process_crashing_call_p/1,
+         process_foo_call_s/1,
+         process_too_long_call_s/1,
+         process_crashing_call_s/1,
+         process_foo_call/1,
+         process_too_long_call/1,
+         process_crashing_call/1,
+         process_foo_post_p/1,
+         process_too_long_post_p/1,
+         process_crashing_post_p/1,
+         process_foo_cast/1,
+         process_too_long_cast/1,
+         process_crashing_cast/1]).
 
 
 %% start/0
@@ -591,6 +603,18 @@ unregister() ->
     pg2:leave(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
 
 % Test functions
-process_foo(From) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,From).
-process_too_long(From) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
-process_crashing(From) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,From).
+process_foo_call(From) -> csi:call(?CSI_SERVICE_NAME,process_foo,From).
+process_too_long_call(From) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing_call(From) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,From).
+process_foo_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,From).
+process_too_long_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing_call_p(From) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,From).
+process_foo_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_foo,From).
+process_too_long_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing_call_s(From) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,From).
+process_foo_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,From).
+process_too_long_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing_post_p(From) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,From).
+process_foo_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_foo,From).
+process_too_long_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,From,4000).
+process_crashing_cast(From) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,From).

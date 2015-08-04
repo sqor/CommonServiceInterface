@@ -1,5 +1,7 @@
 # SQ2_CommonServiceInterface
 
+# ALPHA VERSION UNDER CONSTRUCTION.
+
 ## Introduction
 In an Erlang application, usually we have a number of services communicating themselves to fulfill the incoming requests from the clients. These services are implemented by writing gen_server code most of the time. Some of them may be processor intensive, others could be I/O intensive. When we face to a situation where our system slows down, it is hard to find the root cause of the performance degradation. We may have some clue, which service (or gen_server) takes the resources, causing the bottleneck, on the other hand if we are able to measure basic metrics for all the services, the quest for the root cause turns to be much easier.
 
@@ -41,7 +43,7 @@ In order to quickly understand the usage of CSI, we will implement a small servi
 As you will see, there are two main parts of our em_service.erl callback module:
 
 ### 1. Beavioural functions
-Implementing a service needs some housekeeping. When the service server is launched, the init_service function is called. Here, the service shall initialize it's state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the service state when processing each and every request.
+Implementing a service needs some housekeeping. When the service server is launched through a start() or start_link(), the init_service function is called. Here, the service shall initialize it's state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the service state when starting to process each and every request.
 
 terminate_service is the counterpart of init_service. It is called when the service is being terminated, so this is the last place where the cleanups shall be executed before a service shuts down.
 
@@ -49,7 +51,7 @@ When a request reaches the server, it calls the callback module's init function 
 
 When init returned with {ok,RequestProcessingState} our gen_server calls the function that will actually process the request. These are the functions that can be found in the Second part of the callback module, and called as Service Functions.
 
-When the request is processed, our gen_server finally calls terminate to have a cleanup after processing a single request.
+When the request is processed, our gen_server finally calls terminate(Reason,RequestProcessingState) callback function to have a cleanup after processing a single request.
 
 ### 2. Service functions
 The implementation for the service functions goes to em_service.erl:
@@ -102,4 +104,43 @@ process_crashing(Args,State) ->
     {A,State}.
 ```
 
+So far we have the business logic implemented. Let us see, how to create the API for the service
+
+### Service API
+The entry points to a service is very similar to a gen_server implementation. There are a couple of housekeeping functions like start, start_link, stop and then the exposed functionality is declared.
+
+When launching a service, it's start or start_link function shall be called. As our em service uses the CSI gen server, it needs to tell the CSI server, on what name the service shall be registered locally and also, what is the module that implements the callback functions along with the functionality for the service. So start and start_link have two parameters, the name of the service and the service module. In our case the latter is em_service.erl as created above.
+
+The business logic is called through the CSI server, by csi:call_p(?SERVICE_NAME,function,[Arg1,Arg2,..]). What happens then, is the CSI server code calls your service module function to perform the operation. You might recognized, we used call_p instead of the simple call(). There are several ways a server can process a request. It can do parallel or serialized request processing. When we use call_p() the CSI server spawns a separate process for handling the request. In this process, the callback module's init(), function() and terminate() will be called as described above. call_p() is to be used for concurrent request processing. call_s() is similar, but  no spawned process will handle the request. It means, the requests are serialized so handled one by one. Both ways, the requestor is blocked as long as the callback function returns.
+
+There is serveral ways to call a service, here I would mention just one additionally. If instead of call_p() we use post_p() it will immediately return with a tuple containing the Pid and a reference of the process spawned for the request and later the result will be sent back to the requestor in a message.
+
+Here we will take a look at call_p for simplicity.
+```erlang
+-module(em).
+
+-define(SERVICE_NAME,em_service).
+-define(SERVICE_MODULE,em_service).
+
+%% ====================================================================
+%% API functions
+%% ====================================================================
+-export([start/0,
+         start_link/0,
+         stop/0]).
+
+-export([process_foo/1,
+         process_too_long/1,
+         process_crashing/1]).
+
+
+start() -> csi:start(?SERVICE_NAME,?SERVICE_MODULE).
+start_link() -> csi:start_link(?SERVICE_NAME,?SERVICE_MODULE).
+
+stop() -> csi:stop(?SERVICE_NAME).
+
+process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[From]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[From]).
+process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[From]).
+```
 #To Be Continued.....

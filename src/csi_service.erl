@@ -17,9 +17,11 @@
 -export([init_service/1,
          init/2,
          terminate/2,
-         terminate_service/2]).
+         terminate_service/2,
+         handle_call/3]).
 
--record(csi_server_state,{}).
+-record(csi_service_state,{}).
+-record(csi_request_state, {}).
 
 -export([stats_start_all/0,
          stats_stop_all/0,
@@ -39,8 +41,8 @@ init_service(_InitArgs) ->
     {ok,#csi_service_state{}}.
 
 % init paralell process
-init(_Args,_ServiceState = #csi_server_state{}) ->
-    {ok,undefined}.
+init(_Args,_ServiceState = #csi_service_state{}) ->
+    {ok,#csi_request_state{}}.
 
 % terminate parallell process
 terminate(Reason,_State) ->
@@ -58,6 +60,10 @@ terminate_service(_Reason,_State) ->
 services(_Args,State) ->
     {[erlang:process_info(X, registered_name) || X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
      State}.
+
+handle_call(Request,_From,State) ->
+    ?LOGFORMAT(warning,"Unhandled request:~p for csi_service with state:~p",[Request,State]),
+    {reply,undefined,State}.
 
 process_foo(_Args,State) ->
     {hello_world,State}.

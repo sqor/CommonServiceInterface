@@ -43,9 +43,6 @@
 -module(csi_server).
 
 -behaviour(gen_server).
--compile([{parse_transform, lager_transform}]).
-
--define(LOGFORMAT(Severity,Msg,Args),ok = lager:Severity(Msg,Args)).
 
 -include("csi.hrl").
 
@@ -308,26 +305,6 @@ handle_call({call_p,Request,Args,TimeoutForProcessing} = R,From,State) ->
     ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
     {noreply, State};
 
-handle_call({post_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
-    Pid = proc_lib:spawn_link(?MODULE,
-                              process_service_request,
-                              [From,State#csi_service_state.service_module,
-                               Request,Args,State,
-                               TimeoutForProcessing,self(),true]),
-    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {posted,{Pid,From}}, State};
-
-handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
-    Pid = proc_lib:spawn_link(?MODULE,
-                              process_service_request,
-                              [From,State#csi_service_state.service_module,
-                               Request,Args,State,
-                               TimeoutForProcessing,self(),false]),
-    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {casted,{Pid,csi_service_state}} , State};
-
 handle_call({call_s,Request,Args} = R,_From,State) ->
     collect_stats(start,State,Request,R,Ref = make_ref()),
     Module = State#csi_service_state.service_module,
@@ -355,6 +332,26 @@ handle_call({call_s,Request,Args} = R,_From,State) ->
             collect_stats(clean,State,Request,R,Ref),
             {reply,{error,exception},State}
     end;
+
+handle_call({post_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
+    collect_stats(start,State,Request,R,Ref = make_ref()),
+    Pid = proc_lib:spawn_link(?MODULE,
+                              process_service_request,
+                              [From,State#csi_service_state.service_module,
+                               Request,Args,State,
+                               TimeoutForProcessing,self(),true]),
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
+    {reply, {posted,{Pid,From}}, State};
+
+handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
+    collect_stats(start,State,Request,R,Ref = make_ref()),
+    Pid = proc_lib:spawn_link(?MODULE,
+                              process_service_request,
+                              [From,State#csi_service_state.service_module,
+                               Request,Args,State,
+                               TimeoutForProcessing,self(),false]),
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
+    {reply, {casted,{Pid,csi_service_state}} , State};
 
 handle_call(Request, From, State) ->
 %    collect_stats(start,State,Request,Request,Ref = make_ref()),
