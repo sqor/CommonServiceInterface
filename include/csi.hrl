@@ -29,8 +29,8 @@
 
 -ifdef(debug).
 -define(DEFAULT_SERVER_TIMEOUT,infinity).
--define(CALCULATED_SERVER_TIMEOUT(Timeout),Timeout+Timeout).
+-define(DEFAULT_SERVICE_TIMEOUT,infinity).
 -else.
 -define(DEFAULT_SERVER_TIMEOUT,5000).
--define(CALCULATED_SERVER_TIMEOUT(Timeout),Timeout+?DEFAULT_SERVER_TIMEOUT).
+-define(DEFAULT_SERVICE_TIMEOUT,4000).
 -endif.

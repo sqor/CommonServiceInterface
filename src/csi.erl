@@ -434,7 +434,7 @@ stats_change_module(ServerName,Module) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName,Request) ->
-    call_p(ServerName,Request,[],?DEFAULT_SERVER_TIMEOUT).
+    call_p(ServerName,Request,[],?DEFAULT_SERVICE_TIMEOUT).
 
 %% call_p/3
 %% ====================================================================
@@ -446,7 +446,7 @@ call_p(ServerName,Request) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args) ->
-    call_p(ServerName, Request,Args,?DEFAULT_SERVER_TIMEOUT).
+    call_p(ServerName, Request,Args,?DEFAULT_SERVICE_TIMEOUT).
 
 %% call_p/4
 %% ====================================================================
@@ -463,7 +463,7 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           {call_p, Request, Args, TimeoutForProcessing},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
+                          ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_s/2
 %% ====================================================================
@@ -503,7 +503,7 @@ call_s(ServerName, Request, Args, TimeoutForProcessing) ->
                           {call_s, Request, Args},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
+                          TimeoutForProcessing).
 
 %% call/3
 %% ====================================================================
@@ -532,7 +532,7 @@ call(ServerName, Request, Args, TimeoutForProcessing) ->
                           {Request,Args},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
+                          TimeoutForProcessing).
 
 %% post_p/3
 %% ====================================================================
@@ -544,7 +544,7 @@ call(ServerName, Request, Args, TimeoutForProcessing) ->
     Reply :: term().
 %% ====================================================================
 post_p(ServerName, Request, Args) ->
-    post_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
+    post_p(ServerName, Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
 
 %% post_p/4
 %% ====================================================================
@@ -561,7 +561,7 @@ post_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           {post_p, Request, Args, TimeoutForProcessing},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing)).
+                          ?DEFAULT_SERVER_TIMEOUT).
 %% @TODO implement cast_server in cu
 %% cast_f(ServerName, Request, Args) ->
 %%     cast_f(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
