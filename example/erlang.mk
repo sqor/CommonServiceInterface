@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 1.2.0-634-g2f69190
+ERLANG_MK_VERSION = 1.2.0-634-g2f69190-dirty
 
 # Core configuration.
 
@@ -4036,7 +4036,7 @@ define dep_autopatch
 			$(call dep_autopatch2,$(1)); \
 		elif [ 0 != `grep -ci rebar $(DEPS_DIR)/$(1)/Makefile` ]; then \
 			$(call dep_autopatch2,$(1)); \
-		elif [ -n "`find $(DEPS_DIR)/$(1)/ -type f -name \*.mk -not -name erlang.mk | xargs -r grep -i rebar`" ]; then \
+		elif [ -n "`find $(DEPS_DIR)/$(1)/ -type f -name \*.mk -not -name erlang.mk | xargs grep -i rebar`" ]; then \
 			$(call dep_autopatch2,$(1)); \
 		else \
 			if [ -f $(DEPS_DIR)/$(1)/erlang.mk ]; then \
@@ -4362,7 +4362,7 @@ define dep_autopatch_rebar.erl
 			end,
 			[PortSpec(S) || S <- PortSpecs]
 	end,
-	Write("\ninclude $(ERLANG_MK_FILENAME)"),
+	Write("\ninclude ../../erlang.mk"),
 	RunPlugin = fun(Plugin, Step) ->
 		case erlang:function_exported(Plugin, Step, 2) of
 			false -> ok;
