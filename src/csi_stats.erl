@@ -49,7 +49,8 @@ response_time(stop,Request,_R,Ref,Params,Tab) ->
                                                       AllRespTime,
                                                       AllRespTime/NewNr,
                                                       NewMinRt,
-                                                      NewMaxRt}})
+                                                      NewMaxRt}}),
+            ets:delete(Tab, {response_time_first,Ref})
     end;
 
 response_time(clean,_Request,_R,Ref,_Params,Tab) ->

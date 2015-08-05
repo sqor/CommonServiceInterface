@@ -2,7 +2,7 @@
 
 # ALPHA VERSION USE WITH CARE
 
-## requisites
+## Requisites
 Use erlang.mk and relx
 
 # Quick start on using CSI
@@ -39,7 +39,7 @@ In your app.src file, include csi in the applications section.
 You will have csi included in your application from now on.
     
 # Quick Start with the example
-Clone the repo, go to its directory.
+Clone the repository, go to its directory.
 
     cd example
     make run
@@ -98,21 +98,23 @@ And if you use lager, here is what you find in the console.log after the sequenc
 # Road to use CSI
 
 ## Introduction
-In an Erlang application, usually we have a number of services communicating themselves to fulfill the incoming requests from the clients. These services are implemented by writing gen_server code most of the time. Some of them may be processor intensive, others could be I/O intensive. When we face to a situation where our system slows down, it is hard to find the root cause of the performance degradation. We may have some clue, which service (or gen_server) takes the resources, causing the bottleneck, on the other hand if we are able to measure basic metrics for all the services, the quest for the root cause turns to be much easier.
+In an Erlang application, usually we have a number of services communicating themselves to fulfill the incoming requests from the clients. These services are implemented by writing gen_server code most of the time. Some of them may be processor intensive, others could be I/O intensive. When we face to a situation that our system slows down, it is hard to find the root cause of the performance degradation. We may have some clue, which service (or gen_server) takes the resources, causing the bottleneck, on the other hand if we were able to measure basic metrics for all the services, the quest for the root cause would turn to be much easier.
 
 Implementing the metrics in each and every service takes time and have the risk of non-conformity as different developers may have different ways and ideas on how to implement a common metric.
 
 If we had a generalized gen_server that all the services comply with, implementing common behaviors for all services would mean to code only once and use it as many times as the number of services we would like to have it implemented.
 
-So instead of writing a gen_server for a service, we may call the generalized gen_server, to handle the request by making a call into our callback module that implements the functionalities.
+So instead of writing a gen_server for a service, we can use a generalized gen_server, to handle the request by making calls into our callback module that implements the functionalities.
 
 ## Service as a service
-Using the generalized gen_server, the service itself can focus on the business logic it needs to implement. The service is wrapped around with the common code that handles the requests and provides the return value back to the requester.
+Using the generalized gen_server, the service we need to implement can focus on the business logic. The service is wrapped around with the common code that handles the requests and provides the return value back to the requester.
 
 This generalized gen_server is also a service. It's functionality is to handle the requests, make them concurrently processed if it is needed, and also take measurements and common service behavior. In addition, It shall keep itself open for future improvements. 
 
 ## The Common Service Interface (CSI)
-CSI maintains two interfaces:
+In short, CSI sits between the service API and the service logic. When a request is coming by calling the service API, the API shall call CSI and tell it how shall the request be processed. Then CSI takes the order and makes the call into the service logic (a callback module), and responds to the caller with the value the service logic gives back.
+
+So we have two interfaces:
 
 1.  The way to handle incoming requests.
 2.  The behavior of the callback module where the requests are processed.
@@ -120,13 +122,13 @@ CSI maintains two interfaces:
 ### Handling incoming requests
 The call flow for any incoming request hitting the service is the following:
 
-The caller executes a service:function(Parameters) call in order to have a result from the service. In the service.erl file - which is the API for the service - all function have the same format as to call the csi:calltype(Parameters) API of the CSI server. There are a couple of call types available that are described below.
+The caller executes a servicename:function(Parameters) call in order to have a result from the service. In the servicename.erl file - which is the API for the service - all function have the same format as to call the csi:calltype(Parameters) API of the CSI server. There are a couple of call types available that are described below.
 
 For a given service, this is all what is needed to set up the API.
 
 ### Processing the request in the callback module
 
-As the CSI server is the gen_server for the service, it handles the call made in the service.erl API in it's handle_call function, by calling the callback module's function(Parameters). The callback module shall return the Results to the CSI gen_server that will forward it back to the original requester.
+As the CSI server is the gen_server for the service, it handles the call made in the service.erl API in it's handle_call function, by calling the callback module's function(Parameters). The callback module shall return the Results to the CSI gen_server that will forward it back to the original requester. As a practice the module name shall be servicename_services.erl
 
 ## A tiny example.
 In order to quickly understand the usage of CSI, we will implement a small service, called em_service that provides three functionalities:
@@ -138,9 +140,9 @@ In order to quickly understand the usage of CSI, we will implement a small servi
 As you will see, there are two main parts of our em_service.erl callback module:
 
 ### 1. Beavioural functions
-Implementing a service needs some housekeeping. When the service server is launched through a start() or start_link(), the init_service function is called in the callback module. Here, the service shall initialize it's global state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the global state when starting to process each and every request.
+Implementing a service needs some housekeeping. When the service server is launched through a start() or start_link(), the init_service() function is called in the callback module. Here, the service shall initialize it's global state and return with an {ok,ServiceState} tuple. This ServiceState is used to pass the global state when starting to process each and every request.
 
-terminate_service is the counterpart of init_service. It is called when the service is being terminated, so this is the last place where the cleanups shall be executed before a service shuts down.
+terminate_service() is the counterpart of init_service(). It is called when the service is being terminated, so this is the last place where the cleanups shall be executed before a service shuts down.
 
 When a request reaches the server, it calls the callback module's init(Args,ServiceState) function to initialize the processing thread. It shall return with {ok,RequestState} that is used during  processing of a specific request. Here a DB connection could be taken from a pool for example and pass it back as part of the RequestState.
 
@@ -207,9 +209,9 @@ The entry points to a service is very similar to a gen_server implementation. Th
 
 When launching a service, it's start or start_link function shall be called. As our em service uses the CSI gen server, it needs to tell the CSI server, on what name the service shall be registered locally and also, what is the module that implements the callback functions along with the functionality for the service. So start and start_link have two parameters, the name of the service and the service module. In our case the latter is em_service.erl as created above.
 
-The business logic is called through the CSI server, by csi:call_p(?SERVICE_NAME,function,[Arg1,Arg2,..]). What happens then, is the CSI server code calls your service module function to perform the operation. You might recognized, we used call_p instead of the simple call(). There are several ways a server can process a request. It can do parallel or serialized request processing. When we use call_p() the CSI server spawns a separate process for handling the request. In this process, the callback module's init(), function() and terminate() will be called as described above. call_p() is to be used for concurrent request processing. call_s() is similar, but  no spawned process will handle the request. It means, the requests are serialized so handled one by one. Both ways, the requestor is blocked as long as the callback function returns.
+The business logic is called through the CSI server, by csi:call_p(?SERVICE_NAME,function,Args). What happens then, is the CSI server code calls your service module function to perform the operation. You might recognized, we used call_p instead of the simple call(). There are several ways a server can process a request. It can do parallel or serialized request processing. When we use call_p() the CSI server spawns a separate process for handling the request. In this process, the callback module's init(), function() and terminate() will be called as described above. call_p() is to be used for concurrent request processing. call_s() is similar, but  no spawned process will handle the request. It means, the requests are serialized so handled one by one. Both ways, the requester is blocked as long as the callback function returns.
 
-There is serveral ways to call a service, here I would mention just one additionally. If instead of call_p() we use post_p() it will immediately return with a tuple containing the Pid and a reference of the process spawned for the request and later the result will be sent back to the requestor in a message.
+There are a number of other ways exist to call a service, here I would mention just one additionally. If instead of call_p() we use post_p() it will immediately return with a tuple containing the Pid and a Reference of the process spawned for the request and later the result will be sent back to the requester in an Erlang message.
 
 Here we will take a look at call_p for simplicity.
 ```erlang
@@ -240,12 +242,13 @@ process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[Atom]).
 process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[Atom]).
 ```
 
-As CSI is itself a service, it's statistical and status functionalities are implemented using itself. For a more complex service, you may want to look at csi.erl for the API of CSI itself, csi_service.erl to have some feeling how a more complex service is implemented or csi_server.erl where all the magic happens.
+For a more complex service, you may want to look at csi.erl for the API of CSI itself, csi_service.erl to have some feeling how a more complex service is implemented or csi_server.erl where all the magic happens.
 
-# Extending CSI functionality
-There is an example of collecting statistics for any service using CSI. Response time for request is an essential statistics we may need for checking the health of our system.
+## Extending CSI functionality
+It is easy to add new functionalities to services servers if they use the common CSI framework. The only place we need to implement it is the CSI itself and all services using it will have that new functionality.
 
-CSI implements a kind of statistical framework. When a request is get processed, CSI calls all the statistics that was given to it through its csi:stats_include_type(service_name,stat_type) API, where stat_type is the name of the function in the given statistics module (default is csi_stats.erl). The stats module shall implement the functions for the types. For example if there is a stat_type named response_time, there shall be a corresponding function in the stats module with the following header:
+# Statistic functionality
+CSI implements a statistical framework. When a request is get processed, CSI calls all the statistics that was given to it through its csi:stats_include_type(service_name,stat_type) API, where stat_type is the name of the function in the given statistics module (default is csi_stats.erl). The stats module shall implement the functions for the types. For example if there is a stat_type named response_time, there shall be a corresponding function in the stats module with the following header:
 
     response_time(Stage,Request,FullRequest,Ref,Params,Tab) ->
     
@@ -254,20 +257,21 @@ Where the arguments are the following:
 - Stage. There are three possible values the Stage can have:
     1. start. The processing of a request is about to be started.
     2. stop. The processing of the request has finished
-    3. clean. There was some problem and the request processing shall not be measured, so clean up if there was something set up at start.
+    3. clean. There was some problem and the request processing shall not be measured, so clean up if there was something set up at start and no longer needed.
     
 - Request. This is the function name as an atom that will be called to process the request.
 
 - FullRequest. A tuple, containing internal request data:
     {ProcessingStrategy,Request,Arguments}
     ProcessingStrategy can be several atoms, it tells whether the incoming request is processed via a call, post or cast and also it tells whether the processing is done in parallel or serialized.
+    Request is the same as right above.
     Arguments are the parameters the callback function for processing the request will get.
     
 - Ref. Unique reference of the request. Use this to identify the request in the start, stop and clean stage.
 
 - Params. Parameters of a statistic type. It is a property list that can be modified in runtime.
 
-- Tab. An ets table. Here you can save intermediate or persistent information. The suggested practice of using this table is that the key shall be a tuple with two atoms, like {stat_type,request} or {stat_type_temporaryvalue,Ref} and the value can be stats specific.
+- Tab. An ets table. Here you can save intermediate or persistent (for the time the sercvice is running) information. The suggested practice of using this table is that the key shall be a tuple with two atoms, like {stat_type,request} or {stat_type_temporaryvalue,Ref} and the value can be stats specific.
 
 ### Example
 In case of the already implemented response_time metric, there is a corresponding function in csi_stats.erl. When it is called with Stage = start, it saves the os:timestamp() value into the ets table with the following call:
@@ -283,7 +287,9 @@ Next time the function is called shall be with Stage = stop. The response_time f
                                               MinRT,
                                               MaxRT}})
                                               
-In case it is called with Stage = clean instead, it just simply deletes the key from the ets table:
+in the last step it deletes the {response_time_first,Ref} key from the ets table.
+                                              
+In case it is called with Stage = clean instead, it just simply deletes the key that was inserted at start, from the ets table:
 
     ets:delete(Tab, {response_time_first,Else})
     
@@ -295,7 +301,7 @@ For example:
     [{{response_time,process_foo},{3,243,81.0,78,85}}]
     (em_server@127.0.0.1)15>
 
-meaning there were 3 request for process_foo, the total time processing these requests was 243 usecs, The average time was 81 usecs, fastest request processing was 78 usecs, slowest was 85 usecs
+meaning there were 3 requests for process_foo, the total time processing these requests was 243 usecs, The average time was 81 usecs, fastest request processing was 78 usecs, slowest was 85 usecs
 
 Feel free to come up with more lightweight stats!
 

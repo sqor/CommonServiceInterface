@@ -478,10 +478,9 @@ handle_info(Info, State) ->
                                 true ->
                                     collect_stats(stop,State,Request,R,Ref);
                                 _ ->
-                                    ok
+                                    collect_stats(clean, State, undefined, undefined, Ref)
                             end,
-                            ets:delete(State#csi_service_state.stats_process_table, Pid),
-                            collect_stats(clean, State, undefined, undefined, Ref);
+                            ets:delete(State#csi_service_state.stats_process_table, Pid);
                         WAFIT ->
                             ?LOGFORMAT(warning,
                                        "Pid ~p not returned value ~p from process table~n",
