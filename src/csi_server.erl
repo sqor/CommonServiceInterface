@@ -78,11 +78,10 @@
                             stats_module = csi_stats,
                             stats_requests_include = [all],
                             stats_requests_exclude = [],
-                            %                 stats_types = [response_time]
                             stats_types = [{response_time,[{"last_nth_to_collect",10},
                                                            {"normalize_to_nth",8}]}
-                                          %%                                ,{req_per_sec,[{"time_window",5}
-                                          %%                                              ]}
+%%                                            ,{req_per_sec,[{"time_window",5}
+%%                                                          ]}
                                           ]
                            }).
 
@@ -555,6 +554,7 @@ code_change(_OldVsn, State, _Extra) ->
 collect_stats(Stage,State,Request,R,Ref) ->
     case State#csi_service_state.stats_collect of
         true ->
+            TimeStamp = csi_utils:now_usec(),
             case stats_to_collect(Request,State) of
                 true ->
                     try
@@ -565,7 +565,9 @@ collect_stats(Stage,State,Request,R,Ref) ->
                                              R,
                                              Ref,
                                              Params,
-                                             State#csi_service_state.stat_table)
+                                             State#csi_service_state.stat_table,
+                                             TimeStamp
+                                            )
                                   end,
                                   State#csi_service_state.stats_types)
                     catch
