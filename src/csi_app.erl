@@ -10,10 +10,20 @@
 -module(csi_app).
 -behaviour(application).
 
--include("csi.hrl").
-
 -export([start/2]).
 -export([stop/1]).
+-export([debug/0]).
+
+-include("csi.hrl").
+
+debug() ->
+    ok = application:start(compiler),
+    ok = application:start(syntax_tools),
+    ok = application:start(goldrush),
+    ok = application:start(lager),
+    ok = application:start(csi).
+    
+%    ?LOGMSG(debug,"Application rls started").
 
 start(_Type, _Args) ->
 	csi_sup:start_link().
