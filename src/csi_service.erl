@@ -9,7 +9,7 @@
 
 -module(csi_service).
 -behaviour(csi_server).
--include("csi.hrl").
+-include("csi_common.hrl").
 
 %% ====================================================================
 %% API functions
