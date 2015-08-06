@@ -1,42 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author sqor <dev@sqor.com>
 %%% @copyright (C) 2015, SQOR, Inc.
-%%% @TODO update the doc here as it reflects an earlier version.
-%%% @doc Generic server for making request processing in parallell
-%%% Usage:  For a service, create a file service_name.erl
-%%%         and service_name_service_module.erl.
-%%%         For example the relationship service shall have rls.erl and
-%%%         rls_service.erl
-%%%
-%%% service_name.erl is the api for that service. It shall contain at least
-%%% the following exported functions that is recommended to define as follows:
-%%% start() -> cu_pserver:start(?YOUR_REGISTERED_SERVICE_NAME,
-%%%                             service_name>_service_module).
-%%% start_link() -> cu_pserver:start_link(?YOUR_REGISTERED_SERVICE_NAME,
-%%%                                       service_name_service_module).
-%%% stop() -> cu_pserver:stop(?YOUR_REGISTERED_SERVICE_NAME).
-%%% 
-%%% Thus the supervisor of your service can restart your gen_server.
-%%%
-%%% In addition you shall define your service API in the following way:
-%%% service_function(Arguments) ->
-%%%     cu_pserver:call(?YOUR_REGISTERED_SERVICE_NAME,
-%%%                     service_function,
-%%%                     Arguments).
-%%% 
-%%% When a call arrives to your api, it sends the request to the locally
-%%% registered gen_server for your service. It then tries to call the function
-%%% in your service_name_service_module withing a try - cathc.
-%%% This gen_server then spawns a separate process to handle the incoming
-%%% request and get ready for the next request.
-%%% In case this server is down and being relaunched by its supervisor, after
-%%% ?DEFAULT_SERVICE_SLEEP time, this cu_pserver module will retry it for
-%%% ?DEFAULT_SERVICE_RETRY times. If that fails, it returns an {error, noserver}
-%%% tuple to the caller.
-%%% 
-%%% If everything goes fine, your function with the argument is called in a
-%%% separate thread and when that returns, the return value is sent back to the
-%%% caller.
+%%% Common Service Interface gen_server implementation
 %%% @end
 %%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
 %%%-------------------------------------------------------------------
@@ -44,7 +9,7 @@
 
 -behaviour(gen_server).
 
--include("csi.hrl").
+-include("csi_common.hrl").
 
 -export([init/1,
          handle_call/3,

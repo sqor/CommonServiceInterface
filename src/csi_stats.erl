@@ -2,7 +2,7 @@
 %%% @author sqor <dev@sqor.com>
 %%% @copyright (C) 2015, SQOR, Inc.
 %%% @doc
-%%% Statistical function for Common Service Interface application
+%%% Statistical functions for Common Service Interface application
 %%% @end
 %%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
 %%%-------------------------------------------------------------------
