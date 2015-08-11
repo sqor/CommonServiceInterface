@@ -35,7 +35,7 @@ $(APP_FILES): $(APPSRC_FILES)
 	cp $(subst ebin/,src/,$@).src $@
 
 compile: init Emakefile ebin $(APP_FILES)
-	erl -noinput -pa deps/*/ebin -eval '$(ERL_MAKE)'
+	erl -noinput -pa $(DEPS)/*/ebin -eval '$(ERL_MAKE)'
 
 ERL_SOURCES=$(shell ls src/*.?rl)
 
@@ -44,7 +44,7 @@ Emakefile: $(ERL_SOURCES)
 
 ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
-ERL_MAKE_OPTS=debug_info, report, {i, "deps"}, {parse_transform, lager_transform}
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}
 
 distclean: clean
 	-rm -rf $(DEPS)
