@@ -8,7 +8,9 @@
 %%%-------------------------------------------------------------------
 
 -module(csi).
+-compile([{parse_transform, lager_transform},{export_all}]).
 
+-include("csi.hrl").
 -include("csi_common.hrl").
 %% ====================================================================
 %% API functions
@@ -67,10 +69,11 @@
          process_crashing_call/1,
          process_foo_post_p/1,
          process_too_long_post_p/1,
-         process_crashing_post_p/1,
-         process_foo_cast/1,
-         process_too_long_cast/1,
-         process_crashing_cast/1]).
+         process_crashing_post_p/1
+%%          process_foo_cast/1,
+%%          process_too_long_cast/1,
+%%          process_crashing_cast/1
+        ]).
 
 
 %% start/0
@@ -639,6 +642,6 @@ process_crashing_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,A
 process_foo_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,Args).
 process_too_long_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
 process_crashing_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,Args).
-process_foo_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,Args).
+%% process_foo_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_foo,Args).
+%% process_too_long_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+%% process_crashing_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,Args).
