@@ -6,11 +6,6 @@
 %%% @end
 %%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
 %%%-------------------------------------------------------------------
--compile([{parse_transform, lager_transform},{export_all}]).
--include_lib("eunit/include/eunit.hrl").
-
--include("csi.hrl").
-
 -define(CSI_SERVICE_MODULE,csi_service).
 -define(CSI_SERVER_MODULE,csi_server).
 -define(CSI_SERVICE_PROCESS_GROUP_NAME,csi_service_group).
