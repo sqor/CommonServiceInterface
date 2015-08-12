@@ -10,6 +10,7 @@
 -behaviour(gen_server).
 
 -include("csi_common.hrl").
+-include("csi.hrl").
 
 -export([init/1,
          handle_call/3,
@@ -21,7 +22,8 @@
 -callback init_service(InitArgs :: term()) -> Result :: term().
 -callback init(InitArgs :: term(), State :: term()) -> Result :: term().
 -callback terminate(Reason :: term(), State :: term()) -> Result :: term().
--callback terminate_service(Reason :: term(), State :: term()) -> Result :: term().
+-callback terminate_service(Reason :: term(),
+                            State :: term()) -> Result :: term().
 
 %% ====================================================================
 %% API functions
@@ -32,26 +34,23 @@
         ]).
 
 %% ====================================================================
-%% Behavioural functions 
+%% Behavioural functions
 %% ====================================================================
 -record(csi_service_state, {service_name,
                             service_module,
                             service_state,
                             stats_collect = true,
-                            stat_table,
+                            stats_table,
+                            stats_temp_table,
                             stats_process_table,
-                            stats_module = csi_stats,
+                            stats_module = ?DEFAULT_STATS_MODULE,
                             stats_requests_include = [all],
                             stats_requests_exclude = [],
-                            stats_types = [{response_time,[{"last_nth_to_collect",10},
-                                                           {"normalize_to_nth",8}]}
-%%                                            ,{req_per_sec,[{"time_window",5}
-%%                                                          ]}
-                                          ]
+                            stats_types = []
                            }).
 
 -type csi_service_state() :: #csi_service_state{}.
- 
+
 -export_type([csi_service_state/0]).
 
 %% init/1
@@ -72,18 +71,24 @@
 init({Name, Module, InitArgs}) ->
     process_flag(trap_exit, true),
     StatTable = ets:new(Name, [private]),
-    ProcTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_procs"),[private]),
+    StatTempTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_temp"),
+                            [private]),
+    ProcTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_procs"),
+                        [private]),
     pg2:create(?CSI_SERVICE_PROCESS_GROUP_NAME),
     ok = csi:register(),
     try case Module:init_service(InitArgs) of
-            {ok,SState} ->
-                {ok,#csi_service_state{service_name = Name,
-                                       service_module = Module,
-                                       service_state = SState,
-                                       stat_table = StatTable,
-                                       stats_process_table = ProcTable}};
+            {ok, SState} ->
+                {ok, #csi_service_state{service_name = Name,
+                                        service_module = Module,
+                                        service_state = SState,
+                                        stats_types =
+                                            ?DEFAULT_STATS_MODULE:init_stats(),
+                                        stats_table = StatTable,
+                                        stats_temp_table = StatTempTable,
+                                        stats_process_table = ProcTable}};
             WAFIT ->
-                {stop,WAFIT}
+                {stop, WAFIT}
         end
     catch
         A:B ->
@@ -96,9 +101,9 @@ init({Name, Module, InitArgs}) ->
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            {stop,exception}
+            {stop, exception}
     end.
-    
+
 %% handle_call/3
 %% ====================================================================
 %% @doc <a href="http://www.erlang.org/doc/man/gen_server.html#Module:\
@@ -123,42 +128,43 @@ init({Name, Module, InitArgs}) ->
 %% ====================================================================
 
 
-handle_call(stop,_From,State) ->
-    {stop,normal,ok,State};
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
 
-handle_call('$collect_services_status',_From,State) ->
-    {reply,csi_service:collect_services_status(State),State};
+handle_call('$collect_services_status', _From, State) ->
+    {reply, csi_service:collect_services_status(State), State};
 
-handle_call('$service_status',_From,State) ->
-    {reply,State,State};
+handle_call('$service_status', _From, State) ->
+    {reply, State, State};
 
-handle_call('$stats_start_all',From,State) ->
+handle_call('$stats_start_all', From, State) ->
     csi_service:stats_start_all(),
-    handle_call('$stats_start',From,State);
+    handle_call('$stats_start', From, State);
 
-handle_call('$stats_start',_From,State) ->
+handle_call('$stats_start', _From, State) ->
     NewState = State#csi_service_state{stats_collect = true},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call('$stats_stop',_From,State) ->
+handle_call('$stats_stop', _From, State) ->
     NewState = State#csi_service_state{stats_collect = false},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call('$stats_stop_all',From,State) ->
+handle_call('$stats_stop_all', From, State) ->
     csi_service:stats_stop_all(),
-    handle_call('$stats_stop',From,State);
+    handle_call('$stats_stop', From, State);
 
-handle_call({'$stats_include_funs',FunctionList}, From, State)
+handle_call({'$stats_include_funs', FunctionList}, From, State)
   when is_atom(FunctionList) ->
-    handle_call({'$stats_include_funs',[FunctionList]}, From, State);
+    handle_call({'$stats_include_funs', [FunctionList]}, From, State);
 
-handle_call({'$stats_include_funs',FunctionList},_From,State) ->
+handle_call({'$stats_include_funs', FunctionList}, _From, State) ->
     % first remove the functions from the exclude list
     ExcludeList =
-        csi_utils:remove_elems_from_list(FunctionList,
-                                         State#csi_service_state.stats_requests_exclude),
+        csi_utils:remove_elems_from_list(
+          FunctionList,
+          State#csi_service_state.stats_requests_exclude),
     % second include it in stats requests if it does not contain all
-    NewState = 
+    NewState =
         case lists:member(all,
                           State#csi_service_state.stats_requests_include) of
             true ->
@@ -166,121 +172,129 @@ handle_call({'$stats_include_funs',FunctionList},_From,State) ->
             _ ->
                 % add to the list of requests if it is not there
                 IncludeList =
-                    csi_utils:add_elems_to_list(FunctionList,
-                                                State#csi_service_state.stats_requests_include),
+                    csi_utils:add_elems_to_list(
+                      FunctionList,
+                      State#csi_service_state.stats_requests_include),
                 State#csi_service_state{stats_requests_exclude = ExcludeList,
                                         stats_requests_include = IncludeList}
         end,
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call({'$stats_exclude_funs',FunctionList}, From, State)
+handle_call({'$stats_exclude_funs', FunctionList}, From, State)
   when is_atom(FunctionList) ->
-    handle_call({'$stats_exclude_funs',[FunctionList]}, From, State);
+    handle_call({'$stats_exclude_funs', [FunctionList]}, From, State);
 
-handle_call({'$stats_exclude_funs',FunctionList},_From,State) ->
+handle_call({'$stats_exclude_funs', FunctionList}, _From, State) ->
     % first, remove it from the requests
     IncludeList =
-        csi_utils:remove_elems_from_list(FunctionList,
-                                         State#csi_service_state.stats_requests_include),
+        csi_utils:remove_elems_from_list(
+          FunctionList,
+          State#csi_service_state.stats_requests_include),
     % second, add it to the exclude list
-    ExcludeList = csi_utils:add_elems_to_list(FunctionList,
-                                              State#csi_service_state.stats_requests_exclude),
+    ExcludeList = csi_utils:add_elems_to_list(
+                    FunctionList,
+                    State#csi_service_state.stats_requests_exclude),
     NewState = State#csi_service_state{stats_requests_exclude = ExcludeList,
                                        stats_requests_include = IncludeList},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call({'$stats_set_funs',FunctionList}, From, State)
+handle_call({'$stats_set_funs', FunctionList}, From, State)
   when is_atom(FunctionList) ->
-    handle_call({'$stats_set',[FunctionList]}, From, State);
+    handle_call({'$stats_set', [FunctionList]}, From, State);
 
-handle_call({'$stats_set_funs',FunctionList},_From,State) ->
+handle_call({'$stats_set_funs', FunctionList}, _From, State) ->
     NewState = State#csi_service_state{stats_requests_include = FunctionList,
                                        stats_requests_exclude = []},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call('$stats_get_all',_From,State) ->
-%%     Reply = lists:flatten(ets:foldl(fun (X,AccIn) ->
-%%                                              [io_lib:format("~p~n", [X])|AccIn]
+handle_call('$stats_get_all', _From, State) ->
+%%     Reply = lists:flatten(ets:foldl(fun (X, AccIn) ->
+%%                                         [io_lib:format("~p~n", [X])|AccIn]
 %%                                     end, [], State#rstate.stat_table)),
-    Reply = ets:tab2list(State#csi_service_state.stat_table),
-    {reply,Reply,State};
+    Reply = ets:tab2list(State#csi_service_state.stats_table),
+    {reply, Reply, State};
 
-handle_call({'$stats_get_funs',FunctionList},_From,State)
+handle_call({'$stats_get_funs', FunctionList}, _From, State)
     when is_atom(FunctionList) ->
-        handle_call({'$stats_get_funs',[FunctionList]},_From,State);
+        handle_call({'$stats_get_funs', [FunctionList]}, _From, State);
 
-handle_call({'$stats_get_funs',_FunctionList},_From,State) ->
+handle_call({'$stats_get_funs', _FunctionList}, _From, State) ->
     %% @TODO return the stats for only the functions in the Functionlist
-    Reply = ets:tab2list(State#csi_service_state.stat_table),
-    {reply,Reply,State};
+    Reply = ets:tab2list(State#csi_service_state.stats_table),
+    {reply, Reply, State};
 
-handle_call({'$stats_get_types',TypeList},_From,State)
+handle_call({'$stats_get_types', TypeList}, _From, State)
     when is_atom(TypeList) ->
-        handle_call({'$stats_get_types',[TypeList]},_From,State);
+        handle_call({'$stats_get_types', [TypeList]}, _From, State);
 
-handle_call({'$stats_get_types',_TypeList},_From,State) ->
+handle_call({'$stats_get_types', _TypeList}, _From, State) ->
     %% @TODO return the stats for only the types in the Typelist
-    Reply = ets:tab2list(State#csi_service_state.stat_table),
-    {reply,Reply,State};
+    Reply = ets:tab2list(State#csi_service_state.stats_table),
+    {reply, Reply, State};
 
-handle_call({'$stats_get_specific',_Function,_Type},_From,State) ->
+handle_call({'$stats_get_specific', _Function, _Type}, _From, State) ->
     %% @TODO return the stats for only the function for a type
-    Reply = ets:tab2list(State#csi_service_state.stat_table),
-    {reply,Reply,State};
+    Reply = ets:tab2list(State#csi_service_state.stats_table),
+    {reply, Reply, State};
 
-handle_call('$stats_get_process_table',_From,State) ->
+handle_call('$stats_get_process_table', _From, State) ->
     Reply = ets:tab2list(State#csi_service_state.stats_process_table),
-    {reply,Reply,State};
+    {reply, Reply, State};
 
-handle_call({'$stats_include_type',TypeList}, From, State)
+handle_call({'$stats_include_type', TypeList}, From, State)
   when is_atom(TypeList) ->
-    handle_call({'$stats_include_type',[TypeList]}, From, State);
+    handle_call({'$stats_include_type', [TypeList]}, From, State);
 
-handle_call({'$stats_include_type',TypeList},_From,State) ->
-    IncludeList = csi_utils:add_elems_to_list(TypeList,
-                                              State#csi_service_state.stats_types),
+handle_call({'$stats_include_type', TypeList}, _From, State) ->
+    IncludeList = csi_utils:add_elems_to_list(
+                    TypeList,
+                    State#csi_service_state.stats_types),
     NewState = State#csi_service_state{stats_types = IncludeList},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call({'$stats_exclude_type',TypeList}, From, State)
+handle_call({'$stats_exclude_type', TypeList}, From, State)
   when is_atom(TypeList) ->
-    handle_call({'$stats_exclude_type',[TypeList]}, From, State);
+    handle_call({'$stats_exclude_type', [TypeList]}, From, State);
 
-handle_call({'$stats_exclude_type',TypeList},_From,State) ->
+handle_call({'$stats_exclude_type', TypeList}, _From, State) ->
     % first, remove it from the requests
-    ExcludeList = csi_utils:remove_elems_from_list(TypeList,
-                                                   State#csi_service_state.stats_types),
+    ExcludeList = csi_utils:remove_elems_from_list(
+                    TypeList,
+                    State#csi_service_state.stats_types),
     NewState = State#csi_service_state{stats_types = ExcludeList},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call({'$stats_change_module',Module},_From,State) ->
+handle_call({'$stats_change_module', Module}, _From, State) ->
     %% @TODO check if the module is loaded and load it if not
 
     NewState = State#csi_service_state{stats_module = Module},
-    {reply,ok,NewState};
+    {reply, ok, NewState};
 
-handle_call({call_p,Request,Args,TimeoutForProcessing} = R,From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
+handle_call({call_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
+    collect_stats(start, State, Request, R, Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#csi_service_state.service_module,
-                               Request,Args,State,
-                               TimeoutForProcessing,self(),true]),
-    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
+                              [From, State#csi_service_state.service_module,
+                               Request, Args, State,
+                               TimeoutForProcessing, self(), true]),
+    ets:insert(State#csi_service_state.stats_process_table, {Pid,
+                                                             Ref,
+                                                             Request,
+                                                             R}),
     {noreply, State};
 
-handle_call({call_s,Request,Args} = R,_From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
+handle_call({call_s, Request, Args} = R, _From, State) ->
+    collect_stats(start, State, Request, R, Ref = make_ref()),
     Module = State#csi_service_state.service_module,
-    try case Module:init(Args,State#csi_service_state.service_state) of
-            {ok,PState} ->
-                {Reply,EState} = Module:Request(Args,PState),
-                Module:terminate(normal,EState),
-                collect_stats(stop,State,Request,R,Ref),
-                {reply,Reply,State};
+    try case Module:init(Args, State#csi_service_state.service_state) of
+            {ok, PState} ->
+                {Reply, EState} = Module:Request(Args, PState),
+                Module:terminate(normal, EState),
+                collect_stats(stop, State, Request, R, Ref),
+                {reply, Reply, State};
             WAFIT ->
-               collect_stats(clean,State,Request,R,Ref),
-               {reply,WAFIT,State}
+               collect_stats(clean, State, Request, R, Ref),
+               {reply, WAFIT, State}
         end
     catch
         A:B ->
@@ -293,43 +307,58 @@ handle_call({call_s,Request,Args} = R,_From,State) ->
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            collect_stats(clean,State,Request,R,Ref),
-            {reply,{error,exception},State}
+            collect_stats(clean, State, Request, R, Ref),
+            {reply, {error, exception}, State}
     end;
 
-handle_call({post_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
+handle_call({post_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
+    collect_stats(start, State, Request, R, Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#csi_service_state.service_module,
-                               Request,Args,State,
-                               TimeoutForProcessing,self(),true]),
-    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {posted,{Pid,From}}, State};
+                              [From, State#csi_service_state.service_module,
+                               Request, Args, State,
+                               TimeoutForProcessing, self(), true]),
+    ets:insert(State#csi_service_state.stats_process_table,
+               {Pid, Ref, Request, R}),
+    {reply, {posted, {Pid, From}}, State};
 
-handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
-    collect_stats(start,State,Request,R,Ref = make_ref()),
+handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
+    collect_stats(start, State, Request, R, Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
                               process_service_request,
-                              [From,State#csi_service_state.service_module,
-                               Request,Args,State,
-                               TimeoutForProcessing,self(),false]),
-    ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {casted,Pid,State} , State};
+                              [From, State#csi_service_state.service_module,
+                               Request, Args, State,
+                               TimeoutForProcessing, self(), false]),
+    ets:insert(State#csi_service_state.stats_process_table,
+               {Pid, Ref, Request, R}),
+    {reply, {casted, Pid, Ref} , State};
 
 handle_call(Request, From, State) ->
-    collect_stats(start,State,Request,Request,Ref = make_ref()),
+    collect_stats(start, State, Request, Request, Ref = make_ref()),
     Module = State#csi_service_state.service_module,
     try
-        ReturnValue = Module:handle_call(Request,From,State#csi_service_state.service_state),
+        ReturnValue = Module:handle_call(Request,
+                                         From,
+                                         State#csi_service_state.service_state),
         collect_stats(stop, State, Request, Request, Ref),
         case  ReturnValue of
-            {reply, Reply, NewState} -> {reply, Reply, State#csi_service_state{service_state = NewState}};
-            {reply, Reply, NewState, Timeout} -> {reply, Reply, State#csi_service_state{service_state = NewState},Timeout};
-            {noreply, NewState} -> {noreply, State#csi_service_state{service_state = NewState}};
-            {noreply, NewState, Timeout} -> {noreply, State#csi_service_state{service_state = NewState},Timeout};
-            {stop, Reason, Reply, NewState} -> {stop, Reason, Reply, State#csi_service_state{service_state = NewState}};
-            {stop, Reason, NewState} -> {stop, Reason, State#csi_service_state{service_state = NewState}}
+            {reply, Reply, NewState} ->
+                {reply, Reply,
+                 State#csi_service_state{service_state = NewState}};
+            {reply, Reply, NewState, Timeout} ->
+                {reply, Reply,
+                 State#csi_service_state{service_state = NewState}, Timeout};
+            {noreply, NewState} ->
+                {noreply, State#csi_service_state{service_state = NewState}};
+            {noreply, NewState, Timeout} ->
+                {noreply,
+                 State#csi_service_state{service_state = NewState}, Timeout};
+            {stop, Reason, Reply, NewState} ->
+                {stop, Reason, Reply,
+                 State#csi_service_state{service_state = NewState}};
+            {stop, Reason, NewState} ->
+                {stop, Reason,
+                 State#csi_service_state{service_state = NewState}}
         end
     catch
         A:B ->
@@ -341,38 +370,38 @@ handle_call(Request, From, State) ->
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            collect_stats(clean,State,Request,Request,Ref),
-            {reply,{error,exception},State}
+            collect_stats(clean, State, Request, Request, Ref),
+            {reply, {error, exception}, State}
     end.
 
-process_service_request(From,Module,Request,Args,State,
-                             TimeoutForProcessing,Parent,NeedReply) ->
+process_service_request(From, Module, Request, Args, State,
+                        TimeoutForProcessing, Parent, NeedReply) ->
     TRef = case TimeoutForProcessing of
                infinity ->
                    undefined;
                RealTimeout ->
                    KillMessage = case NeedReply of
                                      true ->
-                                         {kill_worker_reply,self(),From};
+                                         {kill_worker_reply, self(), From};
                                      false ->
-                                         {kill_worker_noreply,self()}
+                                         {kill_worker_noreply, self()}
                                  end,
                    erlang:send_after(RealTimeout,
                                      Parent,
                                      KillMessage)
            end,
-    try case Module:init(Args,State#csi_service_state.service_state) of
-            {ok,PState} ->
-                {Reply,EState} = Module:Request(Args,PState),
+    try case Module:init(Args, State#csi_service_state.service_state) of
+            {ok, PState} ->
+                {Reply, EState} = Module:Request(Args, PState),
                 case NeedReply of
                     true ->
-                        gen_server:reply(From,Reply);
+                        gen_server:reply(From, Reply);
                     _ ->
                         ok
                 end,
-                Module:terminate(normal,EState);
+                Module:terminate(normal, EState);
             WAFIT ->
-                gen_server:reply(From,WAFIT)
+                gen_server:reply(From, WAFIT)
         end
     catch
         A:B ->
@@ -385,7 +414,7 @@ process_service_request(From,Module,Request,Args,State,
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            catch gen_server:reply(From,{error,exception}),
+            catch gen_server:reply(From, {error, exception}),
             erlang:exit(exception)
     end,
     case TRef of
@@ -408,8 +437,8 @@ process_service_request(From,Module,Request,Args,State,
     NewState :: term(),
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
-handle_cast({cast,FunctionRequest}, State) ->
-    _ = handle_call(FunctionRequest, {self(),make_ref()}, State),
+handle_cast({cast, FunctionRequest}, State) ->
+    _ = handle_call(FunctionRequest, {self(), make_ref()}, State),
     {noreply, State};
 
 
@@ -431,33 +460,45 @@ handle_cast(_Msg, State) ->
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
 handle_info(Info, State) ->
-    case try (State#csi_service_state.service_module):handle_info(Info,State#csi_service_state.service_state)
-         catch _:_ -> continue end of
+    case try (State#csi_service_state.service_module):
+             handle_info(Info, State#csi_service_state.service_state)
+         catch
+             _:_ ->
+                 continue
+         end of
         continue ->
             case Info of
-                {'EXIT',Pid,Reason} ->
-                    case ets:lookup(State#csi_service_state.stats_process_table, Pid) of
-                        [{Pid,Ref,Request,R}] ->
+                {'EXIT', Pid, Reason} ->
+                    case ets:lookup(
+                           State#csi_service_state.stats_process_table, Pid) of
+                        [{Pid, Ref, Request, R}] ->
                             case Reason =:= normal of
                                 true ->
-                                    collect_stats(stop,State,Request,R,Ref);
+                                    collect_stats(stop, State, Request, R, Ref);
                                 _ ->
-                                    collect_stats(clean, State, undefined, undefined, Ref)
+                                    collect_stats(clean,
+                                                  State,
+                                                  undefined,
+                                                  undefined,
+                                                  Ref)
                             end,
-                            ets:delete(State#csi_service_state.stats_process_table, Pid);
+                            ets:delete(
+                              State#csi_service_state.stats_process_table, Pid);
                         WAFIT ->
                             ?LOGFORMAT(warning,
-                                       "Pid ~p not returned value ~p from process table~n",
-                                       [Pid,WAFIT])
+                                       "Pid ~p not returned value ~p"
+                                       " from process table~n",
+                                       [Pid, WAFIT])
                     end;
-                {kill_worker_reply,Pid,CallerPid} ->
-                    catch gen_server:reply(CallerPid, {error,timeout_killed}),
-                    ?LOGFORMAT(warning,"Worker killed with reply:~p",[Pid]),
+                {kill_worker_reply, Pid, CallerPid} ->
+                    catch gen_server:reply(CallerPid, {error, timeout_killed}),
+                    ?LOGFORMAT(warning, "Worker killed with reply:~p", [Pid]),
                     erlang:exit(Pid, kill);
-                {kill_worker_noreply,Pid} ->
-                    ?LOGFORMAT(warning,"Worker killed with no reply:~p",[Pid]),
+                {kill_worker_noreply, Pid} ->
+                    ?LOGFORMAT(warning, "Worker killed with no reply:~p",
+                               [Pid]),
                     erlang:exit(Pid, kill);
-                WAFIT -> 
+                WAFIT ->
                     ?LOGFORMAT(warning,
                                "Unhandled message received for service ~p."
                                "Module to be called:~p. Message:~p",
@@ -485,15 +526,19 @@ handle_info(Info, State) ->
 terminate(Reason, #csi_service_state{service_module = Module,
                                      service_name = Name,
                                      service_state = ServiceState,
-                                     stat_table = StatTable}) ->
+                                     stats_table = StatTable,
+                                     stats_temp_table = TempStatTable,
+                                     stats_process_table = ProcessTable}) ->
     ets:delete(StatTable),
-    try Module:terminate_service(Reason,ServiceState)
+    ets:delete(ProcessTable),
+    ets:delete(TempStatTable),
+    try Module:terminate_service(Reason, ServiceState)
     catch
         A:B ->
             ?LOGFORMAT(error,
                        "Exception when calling terminate_service for"
                        " service ~p as"
-                       "~p:terminate_service(~p,~p). ~p:~p. Stacktrace:~p",
+                       "~p:terminate_service(~p, ~p). ~p:~p. Stacktrace:~p",
                        [Name,
                         Module,
                         Reason,
@@ -501,7 +546,7 @@ terminate(Reason, #csi_service_state{service_module = Module,
                         A,
                         B,
                         erlang:get_stacktrace()]),
-            {error,exception}
+            {error, exception}
     end.
 
 
@@ -518,25 +563,27 @@ terminate(Reason, #csi_service_state{service_module = Module,
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-collect_stats(Stage,State,Request,R,Ref) ->
+collect_stats(Stage, State, Request, R, Ref) ->
     case State#csi_service_state.stats_collect of
         true ->
             TimeStamp = csi_utils:now_usec(),
-            case stats_to_collect(Request,State) of
+            case stats_to_collect(Request, State) of
                 true ->
                     try
-                        lists:foreach(fun ({M,Params}) ->
-                                           (State#csi_service_state.stats_module):
-                                           M(Stage,
-                                             Request,
-                                             R,
-                                             Ref,
-                                             Params,
-                                             State#csi_service_state.stat_table,
-                                             TimeStamp
-                                            )
-                                  end,
-                                  State#csi_service_state.stats_types)
+                        lists:foreach(
+                          fun ({M, Params}) ->
+                                   (State#csi_service_state.stats_module):
+                                   M(Stage,
+                                     Request,
+                                     R,
+                                     Ref,
+                                     Params,
+                                     State#csi_service_state.stats_table,
+                                     State#csi_service_state.stats_temp_table,
+                                     TimeStamp
+                                    )
+                          end,
+                          State#csi_service_state.stats_types)
                     catch
                         A:B ->
                             ?LOGFORMAT(error,
@@ -556,11 +603,14 @@ collect_stats(Stage,State,Request,R,Ref) ->
             ok
     end.
 
-stats_to_collect(Request,State) ->
-    case lists:member(all,State#csi_service_state.stats_requests_include) of
+stats_to_collect(Request, State) ->
+    case lists:member(all, State#csi_service_state.stats_requests_include) of
         true ->
-            not lists:member(Request,State#csi_service_state.stats_requests_exclude);
+            not lists:member(Request,
+                             State#csi_service_state.stats_requests_exclude);
         _ ->
-            lists:member(Request, State#csi_service_state.stats_requests_include) and
-                not lists:member(Request,State#csi_service_state.stats_requests_exclude)
+            lists:member(Request,
+                         State#csi_service_state.stats_requests_include) and
+                not lists:member(Request,
+                                 State#csi_service_state.stats_requests_exclude)
     end.

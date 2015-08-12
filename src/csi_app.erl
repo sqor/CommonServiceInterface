@@ -14,19 +14,18 @@
 -export([stop/1]).
 -export([debug/0]).
 
--include("csi.hrl").
+-include("csi_common.hrl").
 
 debug() ->
     ok = application:start(compiler),
     ok = application:start(syntax_tools),
     ok = application:start(goldrush),
     ok = application:start(lager),
-    ok = application:start(csi).
-    
-%    ?LOGMSG(debug,"Application rls started").
+    ok = application:start(csi),
+    ?LOGMSG(debug, "Application csi started").
 
 start(_Type, _Args) ->
-	csi_sup:start_link().
+    csi_sup:start_link().
 
 stop(_State) ->
-	ok.
+    ok.

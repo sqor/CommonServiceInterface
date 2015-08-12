@@ -28,7 +28,7 @@
 -define(LOGFORMAT(Level,Format,Args),
         ok = io:format("~p: ~s",[Level,io_lib:format(Format, Args)])).
 -define(LOGMSG(Level,Format),
-        ok = io:format("~p: ~s",[Level,Format]).
+        ok = io:format("~p: ~p",[Level,Format])).
 -endif.
 -endif.
 
