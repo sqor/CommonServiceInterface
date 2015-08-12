@@ -315,7 +315,7 @@ handle_call({cast_p,Request, Args,TimeoutForProcessing} = R,From,State) ->
                                Request,Args,State,
                                TimeoutForProcessing,self(),false]),
     ets:insert(State#csi_service_state.stats_process_table, {Pid,Ref,Request,R}),
-    {reply, {casted,{Pid,csi_service_state}} , State};
+    {reply, {casted,Pid,State} , State};
 
 handle_call(Request, From, State) ->
     collect_stats(start,State,Request,Request,Ref = make_ref()),
@@ -452,8 +452,10 @@ handle_info(Info, State) ->
                     end;
                 {kill_worker_reply,Pid,CallerPid} ->
                     catch gen_server:reply(CallerPid, {error,timeout_killed}),
+                    ?LOGFORMAT(warning,"Worker killed with reply:~p",[Pid]),
                     erlang:exit(Pid, kill);
                 {kill_worker_noreply,Pid} ->
+                    ?LOGFORMAT(warning,"Worker killed with no reply:~p",[Pid]),
                     erlang:exit(Pid, kill);
                 WAFIT -> 
                     ?LOGFORMAT(warning,

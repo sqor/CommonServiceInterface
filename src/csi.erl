@@ -35,6 +35,8 @@
           call_s/4,
           call/3,
           call/4,
+          cast_p/3,
+          cast_p/4,
           cast/2,
           post_p/3,
           post_p/4,
@@ -69,10 +71,10 @@
          process_crashing_call/1,
          process_foo_post_p/1,
          process_too_long_post_p/1,
-         process_crashing_post_p/1
-%%          process_foo_cast/1,
-%%          process_too_long_cast/1,
-%%          process_crashing_cast/1
+         process_crashing_post_p/1,
+         process_foo_cast/1,
+         process_too_long_cast/1,
+         process_crashing_cast/1
         ]).
 
 
@@ -567,15 +569,14 @@ post_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           ?DEFAULT_SERVICE_SLEEP,
                           ?DEFAULT_SERVER_TIMEOUT).
 %% @TODO implement cast_server in cu
-%% cast_f(ServerName, Request, Args) ->
-%%     cast_f(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
-%% cast_f(ServerName, Request, Args, TimeoutForProcessing) ->
-%%     csi_utils:call_server(ServerName,
-%%                    {cast_f, Request, Args, TimeoutForProcessing},
-%%                    ?DEFAULT_SERVICE_RETRY,
-%%                    ?DEFAULT_SERVICE_SLEEP,
-%%                    ?CALCULATED_SERVER_TIMEOUT(TimeoutForProcessing))
-%% .
+cast_p(ServerName, Request, Args) ->
+    cast_p(ServerName, Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
+cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
+    csi_utils:call_server(ServerName,
+                   {cast_p, Request, Args, TimeoutForProcessing},
+                   ?DEFAULT_SERVICE_RETRY,
+                   ?DEFAULT_SERVICE_SLEEP,
+                   ?DEFAULT_SERVER_TIMEOUT).
 
 %% cast/2
 %% ====================================================================
@@ -642,6 +643,6 @@ process_crashing_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,A
 process_foo_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,Args).
 process_too_long_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
 process_crashing_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,Args).
-%% process_foo_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_foo,Args).
-%% process_too_long_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-%% process_crashing_cast(Args) -> csi:cast(?CSI_SERVICE_NAME,process_crashing,Args).
+process_foo_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_foo,Args).
+process_too_long_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
+process_crashing_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_crashing,Args).
