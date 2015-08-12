@@ -250,7 +250,7 @@ It is easy to add new functionalities to services servers if they use the common
 # Statistic functionality
 CSI implements a statistical framework. When a request is get processed, CSI calls all the statistics that was given to it through its csi:stats_include_type(service_name,stat_type) API, where stat_type is the name of the function in the given statistics module (default is csi_stats.erl). The stats module shall implement the functions for the types. For example if there is a stat_type named response_time, there shall be a corresponding function in the stats module with the following header:
 
-    response_time(Stage,Request,FullRequest,Ref,Params,Tab,Timestamp) ->
+    response_time(Stage, Request, FullRequest, Ref, Params, Tab, TempTab, Timestamp) ->
     
 Where the arguments are the following:
 
@@ -271,7 +271,9 @@ Where the arguments are the following:
 
 - Params. Parameters of a statistic type. It is a property list that can be modified in runtime.
 
-- Tab. An ets table. Here you can save intermediate or persistent (for the time the sercvice is running) information. The suggested practice of using this table is that the key shall be a tuple with two atoms, like {stat_type,request} or {stat_type_temporaryvalue,Ref} and the value can be stats specific.
+- Tab. An ets table. Here you can save intermediate or persistent (for the time the sercvice is running) information. The suggested practice of using this table is that the key shall be a tuple with two atoms, like {stat_type,request} and the value can be stats specific.
+
+- TempTab. An ets table to store temporary metric data. The statistic function shall clean this up in case it had inserted something at start stage. The key shall be in the form of {stat_type_temporaryvalue,Ref}
 
 - Timestamp. The timestamp in usecs when the request processing has finished. So you do not need to call erlang:now() for every stats to calculate values.
 

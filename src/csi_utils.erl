@@ -32,10 +32,10 @@
 now_usec() ->
     timestamp_to_usec(os:timestamp()).
 
-timestamp_to_usec({MegaSecs,Secs,MicroSecs}) ->
-    (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
+timestamp_to_usec({MegaSecs, Secs, MicroSecs}) ->
+    (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.
 
-add_elems_to_list(ElemList,List) ->
+add_elems_to_list(ElemList, List) ->
     lists:foldl(fun (Elem, AccIn) ->
                          case lists:member(Elem, AccIn) of
                              true ->
@@ -47,7 +47,7 @@ add_elems_to_list(ElemList,List) ->
                 List,
                 ElemList).
 
-remove_elems_from_list(ElemList,List) ->
+remove_elems_from_list(ElemList, List) ->
     lists:filter(fun (Elem) ->
                           lists:member(Elem, ElemList)
                  end,
@@ -59,7 +59,7 @@ remove_elems_from_list(ElemList,List) ->
 %% @end
 -spec watchdog_create(MessageToSendWhenTimeout :: term(),
                       Timeout ::non_neg_integer) -> Result :: pid().
-watchdog_create(Timeout,MessageToSendWhenTimeout) ->
+watchdog_create(Timeout, MessageToSendWhenTimeout) ->
     spawn(?MODULE, watchdog_loop, [self(), MessageToSendWhenTimeout, Timeout]).
 
 -spec watchdog_loop(SenderPid :: pid(),
@@ -74,19 +74,23 @@ watchdog_create(Timeout,MessageToSendWhenTimeout) ->
 %%<ul>
 %%<li>keepalive -> restarts the timer</li>
 %%<li>stop -> stops the watchdog process</li>
-%%<li>{reset_timeout,NewTimeout} -> restarts the watchdog with new Timeout.</li>
+%%<li>{reset_timeout, NewTimeout} ->
+%%                          restarts the watchdog with new Timeout.</li>
 %%</ul>
 %% @end
-watchdog_loop(SenderPid,MessageToSendWhenTimeout, Timeout) ->
+watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout) ->
     receive
-        {reset_timeout,NewTimeout} ->
-            watchdog_loop(SenderPid,MessageToSendWhenTimeout,NewTimeout);
+        {reset_timeout, NewTimeout} ->
+            watchdog_loop(SenderPid, MessageToSendWhenTimeout, NewTimeout);
         keepalive ->
             watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout);
         stop ->
             ok;
         WAFIT ->
-            ?LOGFORMAT(error,"Watchdog for process ~p got an unexpected message:~p",[SenderPid,WAFIT]),
+            ?LOGFORMAT(error,
+                       "Watchdog for process ~p "
+                       "got an unexpected message:~p",
+                       [SenderPid, WAFIT]),
             watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout)
     after
         Timeout ->
@@ -189,17 +193,19 @@ call_server(Server, Request, Retry, Sleep, Timeout) ->
     Result :: term().
 
 % ====================================================================
-call_server(Server,Request,Timeout,RetryCount,Sleep,Count) ->
+call_server(Server, Request, Timeout, RetryCount, Sleep, Count) ->
     try
-        gen_server:call(Server, Request ,Timeout)
+        gen_server:call(Server, Request, Timeout)
     catch
-        exit:{timeout,Location} ->
-            {error,{timeout,Location}};
+        exit:{timeout, Location} ->
+            {error, {timeout, Location}};
         A:B ->
-            ?LOGFORMAT(error,"Calling server ~p raised an exception:~p:~p",[Server,A,B]),
+            ?LOGFORMAT(error,
+                       "Calling server ~p raised an exception:~p:~p",
+                       [Server, A, B]),
             case Count of
                 0 ->
-                    try_service_discovery(Server,Request);
+                    try_service_discovery(Server, Request);
                 _ ->
                     timer:sleep(Sleep),
                     call_server(Server,
@@ -216,6 +222,6 @@ call_server(Server,Request,Timeout,RetryCount,Sleep,Count) ->
 %% ====================================================================
 
 %% @TODO implement calling the server using service discovery
-try_service_discovery(_Server,_Request) ->
-    {error,noserver}.
+try_service_discovery(_Server, _Request) ->
+    {error, noserver}.
 

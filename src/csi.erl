@@ -8,7 +8,7 @@
 %%%-------------------------------------------------------------------
 
 -module(csi).
--compile([{parse_transform, lager_transform},{export_all}]).
+-compile([{parse_transform, lager_transform}, {export_all}]).
 
 -include("csi.hrl").
 -include("csi_common.hrl").
@@ -83,22 +83,22 @@
 %% @doc starts the Common Service Interface service
 %% @end
 -spec start() -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
-start() -> start(?CSI_SERVICE_NAME,?CSI_SERVICE_MODULE).
+start() -> start(?CSI_SERVICE_NAME, ?CSI_SERVICE_MODULE).
 
 %% start_link/0
 %% ====================================================================
 %% @doc starts the Common Service Interface service and make a link
 %% @end
 -spec start_link() -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
-start_link() -> start_link(?CSI_SERVICE_NAME,?CSI_SERVICE_MODULE).
+start_link() -> start_link(?CSI_SERVICE_NAME, ?CSI_SERVICE_MODULE).
 
 %% stop/0
 %% ====================================================================
@@ -115,9 +115,9 @@ stop() -> stop(?CSI_SERVICE_NAME).
 %% @end
 -spec start(ServerName :: atom(),
             Module :: atom()) -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
 start(ServerName, Module) ->
     start(ServerName, Module, undefined).
@@ -129,13 +129,13 @@ start(ServerName, Module) ->
 -spec start(ServerName :: atom(),
             Module :: atom(),
             InitArgs :: term()) -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
 start(ServerName, Module, InitArgs) ->
     gen_server:start({local, ServerName},
-                     ?CSI_SERVER_MODULE, 
+                     ?CSI_SERVER_MODULE,
                      {ServerName, Module, InitArgs},
                      []).
 
@@ -145,9 +145,9 @@ start(ServerName, Module, InitArgs) ->
 %% @end
 -spec start_link(ServerName :: atom(),
             Module :: atom()) -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
 
 start_link(ServerName, Module) ->
@@ -160,9 +160,9 @@ start_link(ServerName, Module) ->
 -spec start_link(ServerName :: atom(),
             Module :: atom(),
             InitArgs :: term()) -> Result when
-    Result :: {ok,Pid} | ignore | {error,Error},
+    Result :: {ok, Pid} | ignore | {error, Error},
     Pid :: pid(),
-    Error :: {already_started,Pid} | term().
+    Error :: {already_started, Pid} | term().
 %% ====================================================================
 start_link(ServerName, Module, InitArgs) ->
     gen_server:start_link({local, ServerName},
@@ -187,7 +187,7 @@ stop(ServerName) ->
 %% @doc lists registered services for CSI
 %% @end
 -spec services() -> Reply when
-    Reply :: term(). %list({registered_name,atom()}).
+    Reply :: term(). %list({registered_name, atom()}).
 %% ====================================================================
 services() ->
     csi:call_s(?CSI_SERVICE_NAME,
@@ -198,16 +198,16 @@ services() ->
 %% @doc collect all CSI services status
 %% @end
 -spec services_status() -> Reply when
-    Reply :: list({{registered_name,atom()},csi_server:csi_service_state()}).
+    Reply :: list({{registered_name, atom()}, csi_server:csi_service_state()}).
 %% ====================================================================
-%% [{{registered_name,csi_service},
-%%   {csi_service_state,csi_service,csi_service,
+%% [{{registered_name, csi_service},
+%%   {csi_service_state, csi_service, csi_service,
 %%                      {csi_service_state},
-%%                      true,20500,24597,csi_server,
+%%                      true, 20500, 24597, csi_server,
 %%                      [all],
 %%                      [],
-%%                      [{response_time,[{"last_nth_to_collect",10},
-%%                                       {"normalize_to_nth",8}]}]}}]
+%%                      [{response_time, [{"last_nth_to_collect", 10},
+%%                                        {"normalize_to_nth", 8}]}]}}]
 services_status() ->
     gen_server:call(?CSI_SERVICE_NAME,
                     '$collect_services_status',
@@ -281,9 +281,9 @@ stats_stop(ServerName) ->
                          FunctionList :: list(atom())) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_include_funs(ServerName,FunctionList) ->
-    gen_server:call(ServerName,{'$stats_include_funs',
-                                FunctionList},
+stats_include_funs(ServerName, FunctionList) ->
+    gen_server:call(ServerName, {'$stats_include_funs',
+                                 FunctionList},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_exclude_funs/2
@@ -294,19 +294,19 @@ stats_include_funs(ServerName,FunctionList) ->
                          FunctionList :: list(atom())) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_exclude_funs(ServerName,FunctionList) ->
+stats_exclude_funs(ServerName, FunctionList) ->
     gen_server:call(ServerName,
-                    {'$stats_exclude_funs',FunctionList},
+                    {'$stats_exclude_funs', FunctionList},
                     ?DEFAULT_SERVER_TIMEOUT).
-    
+
 %% stats_get_all/1
 %% ====================================================================
 %% @doc get all statistics for a CSI service
 %% @end
 -spec stats_get_all(ServerName :: atom()) -> Reply when
-    Reply :: list({{Type :: atom(),Function :: atom()},tuple()}).
+    Reply :: list({{Type :: atom(), Function :: atom()}, tuple()}).
 %% ====================================================================
-%% [{{response_time,process_foo},{1,69,69.0,69,69}}]
+%% [{{response_time, process_foo}, {1, 69, 69.0, 69, 69}}]
 stats_get_all(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_get_all',
@@ -318,16 +318,16 @@ stats_get_all(ServerName) ->
 %% @end
 -spec stats_get_funs(ServerName :: atom(),
                      FunctionList :: list(atom()) | atom()) -> Reply when
-    Reply :: list({{Type :: atom(),Function :: atom()},tuple()}).
+    Reply :: list({{Type :: atom(), Function :: atom()}, tuple()}).
 %% ====================================================================
-stats_get_funs(ServerName,FunctionList)
+stats_get_funs(ServerName, FunctionList)
   when is_atom(FunctionList) ->
     stats_get_funs(ServerName, [FunctionList]);
 
-stats_get_funs(ServerName,FunctionList) 
+stats_get_funs(ServerName, FunctionList)
   when is_list(FunctionList) ->
     gen_server:call(ServerName,
-                    {'$stats_get_funs',FunctionList},
+                    {'$stats_get_funs', FunctionList},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_get_types/2
@@ -336,16 +336,16 @@ stats_get_funs(ServerName,FunctionList)
 %% @end
 -spec stats_get_types(ServerName :: atom(),
                      FunctionList :: list(atom()) | atom()) -> Reply when
-    Reply :: list({{Type :: atom(),Function :: atom()},tuple()}).
+    Reply :: list({{Type :: atom(), Function :: atom()}, tuple()}).
 %% ====================================================================
-stats_get_types(ServerName,TypeList)
+stats_get_types(ServerName, TypeList)
   when is_atom(TypeList) ->
-    stats_get_types(ServerName,[TypeList]);
+    stats_get_types(ServerName, [TypeList]);
 
-stats_get_types(ServerName,TypeList) 
+stats_get_types(ServerName, TypeList)
   when is_list(TypeList) ->
     gen_server:call(ServerName,
-                    {'$stats_get_type',TypeList},
+                    {'$stats_get_type', TypeList},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_get_specific/3
@@ -355,11 +355,11 @@ stats_get_types(ServerName,TypeList)
 -spec stats_get_specific(ServerName :: atom(),
                          Function :: atom(),
                          Type :: atom()) -> Reply when
-    Reply :: list({{Type :: atom(),Function :: atom()},tuple()}).
+    Reply :: list({{Type :: atom(), Function :: atom()}, tuple()}).
 %% ====================================================================
-stats_get_specific(ServerName,Function,Type) ->
+stats_get_specific(ServerName, Function, Type) ->
     gen_server:call(ServerName,
-                    {'$stats_get_specific',Function,Type},
+                    {'$stats_get_specific', Function, Type},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_get_process_table/1
@@ -382,10 +382,10 @@ stats_get_process_table(ServerName) ->
                      FunctionList :: list(atom())) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_set_funs(ServerName,FunctionList)
+stats_set_funs(ServerName, FunctionList)
   when is_list(FunctionList) ->
     gen_server:call(ServerName,
-                    {'$stats_set_funs',FunctionList},
+                    {'$stats_set_funs', FunctionList},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_include_type/2
@@ -398,10 +398,10 @@ stats_set_funs(ServerName,FunctionList)
                          Type :: atom()) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_include_type(ServerName,Type)
+stats_include_type(ServerName, Type)
   when is_atom(Type) ->
     gen_server:call(ServerName,
-                    {'$stats_include_type',Type},
+                    {'$stats_include_type', Type},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_exclude_type/2
@@ -412,10 +412,10 @@ stats_include_type(ServerName,Type)
                          Type :: atom()) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_exclude_type(ServerName,Type)
+stats_exclude_type(ServerName, Type)
   when is_atom(Type) ->
     gen_server:call(ServerName,
-                    {'$stats_exclude_type',Type},
+                    {'$stats_exclude_type', Type},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_change_module/2
@@ -426,9 +426,9 @@ stats_exclude_type(ServerName,Type)
                           Module :: atom()) -> Reply when
     Reply :: term().
 %% ====================================================================
-stats_change_module(ServerName,Module) ->
+stats_change_module(ServerName, Module) ->
     gen_server:call(ServerName,
-                    {'$stats_change_module',Module},
+                    {'$stats_change_module', Module},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_p/2
@@ -439,8 +439,8 @@ stats_change_module(ServerName,Module) ->
              Request :: atom()) -> Reply when
     Reply :: term().
 %% ====================================================================
-call_p(ServerName,Request) ->
-    call_p(ServerName,Request,[],?DEFAULT_SERVICE_TIMEOUT).
+call_p(ServerName, Request) ->
+    call_p(ServerName, Request, [], ?DEFAULT_SERVICE_TIMEOUT).
 
 %% call_p/3
 %% ====================================================================
@@ -452,7 +452,7 @@ call_p(ServerName,Request) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args) ->
-    call_p(ServerName, Request,Args,?DEFAULT_SERVICE_TIMEOUT).
+    call_p(ServerName,  Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
 
 %% call_p/4
 %% ====================================================================
@@ -479,8 +479,8 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
              Request :: atom()) -> Reply when
     Reply :: term().
 %% ====================================================================
-call_s(ServerName,Request) ->
-    call_s(ServerName,Request,[],?DEFAULT_SERVER_TIMEOUT).
+call_s(ServerName, Request) ->
+    call_s(ServerName, Request, [], ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_s/3
 %% ====================================================================
@@ -492,7 +492,7 @@ call_s(ServerName,Request) ->
     Reply :: term().
 %% ====================================================================
 call_s(ServerName, Request, Args) ->
-    call_s(ServerName, Request,Args,?DEFAULT_SERVER_TIMEOUT).
+    call_s(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_s/4
 %% ====================================================================
@@ -535,7 +535,7 @@ call(ServerName, Request, Args) ->
 %% ====================================================================
 call(ServerName, Request, Args, TimeoutForProcessing) ->
     csi_utils:call_server(ServerName,
-                          {Request,Args},
+                          {Request, Args},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
                           TimeoutForProcessing).
@@ -612,7 +612,7 @@ unregister() ->
 
 % Test functions
 list_macros() ->
-    ?LOGFORMAT(info,"CSI_SERVICE_NAME:~p~n"
+    ?LOGFORMAT(info, "CSI_SERVICE_NAME:~p~n"
                "CSI_SERVICE_MODULE:~p~n"
                "CSI_SERVER_MODULE:~p~n"
                "CSI_SERVICE_PROCESS_GROUP_NAME:~p~n"
@@ -629,20 +629,47 @@ list_macros() ->
                 ?DEFAULT_SERVER_TIMEOUT,
                 ?LOGTYPE
                ]
-    ).   
-    
-process_foo_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_call(Args) -> csi:call(?CSI_SERVICE_NAME,process_crashing,Args).
-process_foo_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,process_crashing,Args).
-process_foo_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,process_crashing,Args).
-process_foo_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,process_crashing,Args).
-process_foo_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_foo,Args).
-process_too_long_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_too_long,Args,4000).
-process_crashing_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,process_crashing,Args).
+    ).
+
+process_foo_call(Args) -> csi:call(?CSI_SERVICE_NAME, process_foo, Args).
+process_too_long_call(Args) -> csi:call(?CSI_SERVICE_NAME,
+                                        process_too_long,
+                                        Args,
+                                        4000).
+process_crashing_call(Args) -> csi:call(?CSI_SERVICE_NAME,
+                                        process_crashing,
+                                        Args).
+process_foo_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME, process_foo, Args).
+process_too_long_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,
+                                            process_too_long,
+                                            Args,
+                                            4000).
+process_crashing_call_p(Args) -> csi:call_p(?CSI_SERVICE_NAME,
+                                            process_crashing,
+                                            Args).
+process_foo_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,
+                                       process_foo,
+                                       Args).
+process_too_long_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,
+                                            process_too_long,
+                                            Args,
+                                            4000).
+process_crashing_call_s(Args) -> csi:call_s(?CSI_SERVICE_NAME,
+                                            process_crashing,
+                                            Args).
+process_foo_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME, process_foo, Args).
+process_too_long_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,
+                                            process_too_long,
+                                            Args,
+                                            4000).
+process_crashing_post_p(Args) -> csi:post_p(?CSI_SERVICE_NAME,
+                                            process_crashing,
+                                            Args).
+process_foo_cast(Args) -> csi:cast_p( ?CSI_SERVICE_NAME, process_foo, Args).
+process_too_long_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,
+                                          process_too_long,
+                                          Args,
+                                          4000).
+process_crashing_cast(Args) -> csi:cast_p(?CSI_SERVICE_NAME,
+                                          process_crashing,
+                                          Args).

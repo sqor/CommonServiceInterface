@@ -12,66 +12,75 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([response_time/7,
-         req_per_sec/7
+-export([init_stats/0,
+         response_time/8,
+         req_per_sec/8
         ]).
 
-response_time(start,_Request,_R,Ref,_Params,Tab,TimeStamp) ->
-    ets:insert(Tab, {{response_time_first,Ref},TimeStamp});
+init_stats() ->
+    [{response_time, [{"last_nth_to_collect", 10},
+                      {"normalize_to_nth", 8}]},
+     {req_per_sec, [{"time_window", 5}
+                   ]}
+    ].
+response_time(start, _Request, _R, Ref, _Params, _Tab, TempTab, TimeStamp) ->
+    ets:insert(TempTab, {{response_time_first, Ref}, TimeStamp});
 
-response_time(stop,Request,_R,Ref,Params,Tab,TimeStamp) ->
-    case ets:lookup(Tab, {response_time_first,Ref}) of
-        [{{response_time_first,Ref},Value}] ->
+response_time(stop, Request, _R, Ref, Params, Tab, TempTab, TimeStamp) ->
+    case ets:lookup(TempTab, {response_time_first, Ref}) of
+        [{{response_time_first, Ref}, Value}] ->
             ResponseTime = TimeStamp - Value,
-            ets:delete(Tab,{response_time_first,Ref}),
-            {NrOfReqs,ART,_Avg,MinRt,MaxRt} = case ets:lookup(Tab, {response_time,Request}) of
-                                                 [] ->
-                                                     {0,0,0,1000000000000,0};
-                                                 [{{response_time,Request},Values}] ->
-                                                     Values
-                                             end,
-            {NormalizedART,NewNr} = 
+            ets:delete(TempTab, {response_time_first, Ref}),
+            {NrOfReqs, ART, _Avg, MinRt, MaxRt} =
+                case ets:lookup(Tab, {response_time, Request}) of
+                    [] ->
+                        {0, 0, 0, 10000000000000, 0};
+                    [{{response_time, Request}, Values}] ->
+                        Values
+                end,
+            {NormalizedART, NewNr} =
                 case proplists:get_value("last_nth_to_collect",
-                                         Params, 
+                                         Params,
                                          10) =:= NrOfReqs of
                     true ->
                         NormalizeToNth = proplists:get_value("normalize_to_nth",
                                                              Params,
                                                              8),
-                        {( ART / NrOfReqs ) * NormalizeToNth,NormalizeToNth + 1};
+                        {( ART / NrOfReqs ) * NormalizeToNth,
+                         NormalizeToNth + 1};
                     _ ->
-                        {ART,NrOfReqs + 1}
+                        {ART, NrOfReqs + 1}
                 end,
             AllRespTime = NormalizedART + ResponseTime,
-            NewMinRt = min(MinRt,ResponseTime),
-            NewMaxRt = max(MaxRt,ResponseTime),
-            ets:insert(Tab, {{response_time,Request},{NewNr,
-                                                      AllRespTime,
-                                                      AllRespTime/NewNr,
-                                                      NewMinRt,
-                                                      NewMaxRt}}),
-            ets:delete(Tab, {response_time_first,Ref})
+            NewMinRt = min(MinRt, ResponseTime),
+            NewMaxRt = max(MaxRt, ResponseTime),
+            ets:insert(Tab, {{response_time, Request}, {NewNr,
+                                                        AllRespTime,
+                                                        AllRespTime/NewNr,
+                                                        NewMinRt,
+                                                        NewMaxRt}}),
+            ets:delete(TempTab, {response_time_first, Ref})
     end;
 
-response_time(clean,_Request,_R,Ref,_Params,Tab,_TimeStamp) ->
+response_time(clean, _Request, _R, Ref, _Params, _Tab, TempTab, _TimeStamp) ->
     case Ref of
         undefined ->
             ok;
         Else ->
-            ets:delete(Tab, {response_time_first,Else})
+            ets:delete(TempTab, {response_time_first, Else})
     end.
 
-req_per_sec(start,Request,_R,_Ref,Params,Tab,TimeStamp) ->
+req_per_sec(start, Request, _R, _Ref, Params, Tab, TempTab, TimeStamp) ->
     ReceivedTimestampList =
-        case ets:lookup(Tab, {req_per_sec_received_list,Request}) of
+        case ets:lookup(TempTab, {req_per_sec_received_list, Request}) of
             [] ->
                 [];
-            [{{req_per_sec_received_list,Request},Values}] ->
+            [{{req_per_sec_received_list, Request}, Values}] ->
                 Values
         end,
     RTL =
         case proplists:get_value("nr_of_timestamps",
-                                 Params, 
+                                 Params,
                                  10) =< length(ReceivedTimestampList) of
             true ->
                 [TimeStamp | lists:droplast(ReceivedTimestampList)];
@@ -82,7 +91,7 @@ req_per_sec(start,Request,_R,_Ref,Params,Tab,TimeStamp) ->
         case length(RTL) >= 2 of
             true ->
                 try
-                    10000000 * length(RTL) / (TimeStamp - lists:last(RTL))
+                    1000000 * length(RTL) / (TimeStamp - lists:last(RTL))
                 catch
                     _:_ ->
                         99999999
@@ -90,14 +99,14 @@ req_per_sec(start,Request,_R,_Ref,Params,Tab,TimeStamp) ->
             _ ->
                 0
         end,
-    ets:insert(Tab, {{req_per_sec_received_list,Request},RTL}),
-    ets:insert(Tab, {{req_per_sec,Request},RPS});
+    ets:insert(TempTab, {{req_per_sec_received_list, Request}, RTL}),
+    ets:insert(Tab, {{req_per_sec, Request}, RPS});
 
-req_per_sec(stop,_Request,_R,_Ref,_Params,_Tab,_TimeStamp) -> ok;
-req_per_sec(clean,_Request,_R,_Ref,_Params,_Tab,_TimeStamp) -> ok.
+req_per_sec(stop, _Request, _R, _Ref, _Params, _Tab, _TempTab, _TimeStamp) ->
+    ok;
+req_per_sec(clean, _Request, _R, _Ref, _Params, _Tab, _TempTab, _TimeStamp) ->
+    ok.
 
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
-
-

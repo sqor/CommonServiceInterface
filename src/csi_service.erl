@@ -20,7 +20,7 @@
          terminate_service/2,
          handle_call/3]).
 
--record(csi_service_state,{}).
+-record(csi_service_state, {}).
 -record(csi_request_state, {}).
 
 -export([stats_start_all/0,
@@ -38,44 +38,47 @@
 % init the global service
 init_service(_InitArgs) ->
 %    csi:unregister(),
-    {ok,#csi_service_state{}}.
+    {ok, #csi_service_state{}}.
 
 % init paralell process
-init(_Args,_ServiceState = #csi_service_state{}) ->
-    {ok,#csi_request_state{}}.
+init(_Args, _ServiceState = #csi_service_state{}) ->
+    {ok, #csi_request_state{}}.
 
 % terminate parallell process
-terminate(Reason,_State) ->
+terminate(Reason, _State) ->
     case Reason of
         normal ->
             ok;
         WAFIT ->
             ?LOGFORMAT(info,
-                       "Common Service Interface process terminated for reason ~p",[WAFIT])
+                       "Common Service Interface process terminated "
+                       "for reason ~p", [WAFIT])
     end.
 
-terminate_service(_Reason,_State) ->
+terminate_service(_Reason, _State) ->
     ok.
 
-services(_Args,State) ->
-    {[erlang:process_info(X, registered_name) || X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
+services(_Args, State) ->
+    {[erlang:process_info(X, registered_name) ||
+        X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
      State}.
 
-handle_call({Request,Args},_From,State) ->
-    ?LOGFORMAT(warning,"Unhandled request:~p for csi_service with state:~p~n",[Request,State]),
-    {Reply,NewState} = ?MODULE:Request(Args,State),
-    {reply,Reply,NewState}.
+handle_call({Request, Args}, _From, State) ->
+    ?LOGFORMAT(warning, "Unhandled request:~p for csi_service with state:~p~n",
+               [Request, State]),
+    {Reply, NewState} = ?MODULE:Request(Args, State),
+    {reply, Reply, NewState}.
 
-process_foo(_Args,State) ->
-    {hello_world,State}.
+process_foo(_Args, State) ->
+    {hello_world, State}.
 
-process_too_long(_Args,State) ->
+process_too_long(_Args, State) ->
     timer:sleep(100000),
-    {long_job_fininshed,State}.
+    {long_job_fininshed, State}.
 
-process_crashing(Args,State) ->
+process_crashing(Args, State) ->
     A = Args - Args,
-    {A,State}.
+    {A, State}.
 
 %% ====================================================================
 %% Internal functions
@@ -103,14 +106,14 @@ stats_stop_all() ->
                   pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
 
 collect_services_status(OwnState) ->
-    lists:foldl(fun(Server,Acc) ->
+    lists:foldl(fun(Server, Acc) ->
                         Status = case Server =:= self() of
                                      true ->
                                          OwnState;
                                      _ ->
                                          csi:service_status(Server)
                                  end,
-                        [{erlang:process_info(Server, registered_name),Status}
+                        [{erlang:process_info(Server, registered_name), Status}
                              | Acc]
                 end,
                 [],
