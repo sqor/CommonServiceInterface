@@ -118,4 +118,3 @@ collect_services_status(OwnState) ->
                 end,
                 [],
                 pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
-
