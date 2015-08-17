@@ -445,6 +445,12 @@ process_service_request(From, Module, Request, Args, State,
                         B,
                         erlang:get_stacktrace()]),
             catch gen_server:reply(From, {error, exception}),
+            case TRef of
+                undefined ->
+                    ok;
+                RealTRef0 ->
+                    erlang:cancel_timer(RealTRef0)
+            end,
             erlang:exit(exception)
     end,
     case TRef of
