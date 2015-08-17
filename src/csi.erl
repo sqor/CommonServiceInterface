@@ -55,6 +55,10 @@
           stats_exclude_type/2,
           stats_get_process_table/1,
           stats_change_module/2,
+          stats_params/1,
+          stats_params/2,
+          stats_param_get/3,
+          stats_param_set/4,
           register/0,
           unregister/0
         ]).
@@ -386,6 +390,61 @@ stats_set_funs(ServerName, FunctionList)
   when is_list(FunctionList) ->
     gen_server:call(ServerName,
                     {'$stats_set_funs', FunctionList},
+                    ?DEFAULT_SERVER_TIMEOUT).
+
+%% stats_set_param/4
+%% ====================================================================
+%% @doc sets a parameter for a given statistic type
+%% @end
+-spec stats_param_set(ServerName :: atom(),
+                      Type :: atom(),
+                      Parameter :: term(),
+                      Value :: term()) -> Reply when
+    Reply :: term().
+%% ====================================================================
+stats_param_set(ServerName, Type, Parameter, Value) ->
+    gen_server:call(ServerName,
+                    {'$stats_param_set', Type, Parameter, Value},
+                    ?DEFAULT_SERVER_TIMEOUT).
+
+%% stats_param_get/3
+%% ====================================================================
+%% @doc get a specific parameter for a given statistic type
+%% @end
+-spec stats_param_get(ServerName :: atom(),
+                      Type :: atom(),
+                      Parameter :: term()) -> Reply when
+                  Reply :: term().
+%% ====================================================================
+stats_param_get(ServerName, Type, Parameter) ->
+    gen_server:call(ServerName,
+                    {'$stats_param_get', Type, Parameter},
+                    ?DEFAULT_SERVER_TIMEOUT).
+
+%% stats_params/1
+%% ====================================================================
+%% @doc get all parameters for a given statistic type
+%% @end
+-spec stats_params(ServerName :: atom()) -> Reply when
+                  Reply :: list(proplists:property()).
+%% ====================================================================
+stats_params(ServerName) ->
+    gen_server:call(ServerName,
+                    {'$stats_params'},
+                    ?DEFAULT_SERVER_TIMEOUT).
+
+
+%% stats_params/2
+%% ====================================================================
+%% @doc get all parameters for a given statistic type
+%% @end
+-spec stats_params(ServerName :: atom(),
+                   Type :: atom()) -> Reply when
+                  Reply :: list(proplists:property()).
+%% ====================================================================
+stats_params(ServerName, Type) ->
+    gen_server:call(ServerName,
+                    {'$stats_params', Type},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_include_type/2

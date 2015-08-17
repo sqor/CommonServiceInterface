@@ -200,7 +200,7 @@ handle_call({'$stats_exclude_funs', FunctionList}, _From, State) ->
 
 handle_call({'$stats_set_funs', FunctionList}, From, State)
   when is_atom(FunctionList) ->
-    handle_call({'$stats_set', [FunctionList]}, From, State);
+    handle_call({'$stats_set_funs', [FunctionList]}, From, State);
 
 handle_call({'$stats_set_funs', FunctionList}, _From, State) ->
     NewState = State#csi_service_state{stats_requests_include = FunctionList,
@@ -269,6 +269,36 @@ handle_call({'$stats_change_module', Module}, _From, State) ->
 
     NewState = State#csi_service_state{stats_module = Module},
     {reply, ok, NewState};
+
+handle_call({'$stats_params'}, _From, State) ->
+    {reply, State#csi_service_state.stats_types, State};
+
+handle_call({'$stats_params', Type}, _From, State) ->
+    {reply, proplists:get_value(Type,
+                                State#csi_service_state.stats_types),
+     State};
+
+handle_call({'$stats_param_get', Type, Parameter}, _From, State) ->
+    {reply,
+     proplists:get_value(
+       Parameter,
+       proplists:get_value(Type, State#csi_service_state.stats_types)),
+     State};
+
+handle_call({'$stats_param_set', Type, Parameter, Value}, _From, State) ->
+    NewValues =
+        lists:keyreplace(Parameter,
+                         1,
+                         proplists:get_value(
+                           Type,
+                           State#csi_service_state.stats_types),
+                         UpdatedValue =
+                             {Parameter, Value}),
+    NewStats = lists:keyreplace(Type,
+                                1,
+                                State#csi_service_state.stats_types,
+                                {Type, NewValues}),
+    {reply, UpdatedValue, State#csi_service_state{stats_types = NewStats}};
 
 handle_call({call_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
     collect_stats(start, State, Request, R, Ref = make_ref()),

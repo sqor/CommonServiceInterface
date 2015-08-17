@@ -18,9 +18,9 @@
         ]).
 
 init_stats() ->
-    [{response_time, [{"last_nth_to_collect", 10},
-                      {"normalize_to_nth", 8}]},
-     {req_per_sec, [{"time_window", 5}
+    [{response_time, [{"last_nth_to_collect", 50},
+                      {"normalize_to_nth", 40}]},
+     {req_per_sec, [{"time_window", 50}
                    ]}
     ].
 response_time(start, _Request, _R, Ref, _Params, _Tab, TempTab, TimeStamp) ->
