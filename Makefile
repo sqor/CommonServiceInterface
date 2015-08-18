@@ -20,8 +20,10 @@ BUILD_ENV ?= development
 ENV = $(BUILD_ENV)
 ifneq ("$(wildcard build_deps_$(BUILD_ENV).mk)","")
 	include build_deps_$(BUILD_ENV).mk
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 else
 	include build_deps_development.mk
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 endif
 
 
@@ -43,8 +45,6 @@ Emakefile: $(ERL_SOURCES)
 	echo "{[\"src/*\"], [{outdir, \"ebin\"}]}." > Emakefile
 
 ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
-
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}
 
 distclean: clean
 	-rm -rf $(DEPS)
@@ -105,3 +105,5 @@ PROJECT = csi
 # Use the same settings for compiling releases as well as for testing
 #ERLC_OPTS= $(ERLC_COMPILE_OPTS)
 #TEST_ERLC_OPTS= $(ERLC_COMPILE_OPTS)
+
+include erlang.mk

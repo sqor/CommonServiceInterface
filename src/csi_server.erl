@@ -200,7 +200,7 @@ handle_call({'$stats_exclude_funs', FunctionList}, _From, State) ->
 
 handle_call({'$stats_set_funs', FunctionList}, From, State)
   when is_atom(FunctionList) ->
-    handle_call({'$stats_set', [FunctionList]}, From, State);
+    handle_call({'$stats_set_funs', [FunctionList]}, From, State);
 
 handle_call({'$stats_set_funs', FunctionList}, _From, State) ->
     NewState = State#csi_service_state{stats_requests_include = FunctionList,
@@ -270,6 +270,36 @@ handle_call({'$stats_change_module', Module}, _From, State) ->
     NewState = State#csi_service_state{stats_module = Module},
     {reply, ok, NewState};
 
+handle_call({'$stats_params'}, _From, State) ->
+    {reply, State#csi_service_state.stats_types, State};
+
+handle_call({'$stats_params', Type}, _From, State) ->
+    {reply, proplists:get_value(Type,
+                                State#csi_service_state.stats_types),
+     State};
+
+handle_call({'$stats_param_get', Type, Parameter}, _From, State) ->
+    {reply,
+     proplists:get_value(
+       Parameter,
+       proplists:get_value(Type, State#csi_service_state.stats_types)),
+     State};
+
+handle_call({'$stats_param_set', Type, Parameter, Value}, _From, State) ->
+    NewValues =
+        lists:keyreplace(Parameter,
+                         1,
+                         proplists:get_value(
+                           Type,
+                           State#csi_service_state.stats_types),
+                         UpdatedValue =
+                             {Parameter, Value}),
+    NewStats = lists:keyreplace(Type,
+                                1,
+                                State#csi_service_state.stats_types,
+                                {Type, NewValues}),
+    {reply, UpdatedValue, State#csi_service_state{stats_types = NewStats}};
+
 handle_call({call_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
     collect_stats(start, State, Request, R, Ref = make_ref()),
     Pid = proc_lib:spawn_link(?MODULE,
@@ -320,7 +350,7 @@ handle_call({post_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                                TimeoutForProcessing, self(), true]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
-    {reply, {posted, {Pid, From}}, State};
+    {reply, {posted, Pid, From}, State};
 
 handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
     collect_stats(start, State, Request, R, Ref = make_ref()),
@@ -331,7 +361,7 @@ handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                                TimeoutForProcessing, self(), false]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
-    {reply, {casted, Pid, Ref} , State};
+    {reply, {casted, Pid} , State};
 
 handle_call(Request, From, State) ->
     collect_stats(start, State, Request, Request, Ref = make_ref()),
@@ -415,6 +445,12 @@ process_service_request(From, Module, Request, Args, State,
                         B,
                         erlang:get_stacktrace()]),
             catch gen_server:reply(From, {error, exception}),
+            _ = case TRef of
+                    undefined ->
+                        ok;
+                    RealTRef0 ->
+                        erlang:cancel_timer(RealTRef0)
+                end,
             erlang:exit(exception)
     end,
     case TRef of
@@ -492,10 +528,10 @@ handle_info(Info, State) ->
                     end;
                 {kill_worker_reply, Pid, CallerPid} ->
                     catch gen_server:reply(CallerPid, {error, timeout_killed}),
-                    ?LOGFORMAT(warning, "Worker killed with reply:~p", [Pid]),
+                    ?LOGFORMAT(warning, "Worker killed with reply. Pid:~p", [Pid]),
                     erlang:exit(Pid, kill);
                 {kill_worker_noreply, Pid} ->
-                    ?LOGFORMAT(warning, "Worker killed with no reply:~p",
+                    ?LOGFORMAT(warning, "Worker killed with no reply Pid:~p",
                                [Pid]),
                     erlang:exit(Pid, kill);
                 WAFIT ->

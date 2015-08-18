@@ -1,7 +1,7 @@
 -module(em).
 
--define(SERVICE_NAME,em_service).
--define(SERVICE_MODULE,em_service).
+-define(SERVICE_NAME, em_service).
+-define(SERVICE_MODULE, em_service).
 
 %% ====================================================================
 %% API functions
@@ -15,11 +15,11 @@
          process_crashing/1]).
 
 
-start() -> csi:start(?SERVICE_NAME,?SERVICE_MODULE).
-start_link() -> csi:start_link(?SERVICE_NAME,?SERVICE_MODULE).
+start() -> csi:start(?SERVICE_NAME, ?SERVICE_MODULE).
+start_link() -> csi:start_link(?SERVICE_NAME, ?SERVICE_MODULE).
 
 stop() -> csi:stop(?SERVICE_NAME).
 
-process_foo(Atom) -> csi:call_p(?SERVICE_NAME,process_foo,[Atom]).
-process_too_long(Atom) -> csi:call_p(?SERVICE_NAME,process_too_long,[Atom]).
-process_crashing(Atom) -> csi:call_p(?SERVICE_NAME,process_crashing,[Atom]).
+process_foo(Atom) -> csi:call_p(?SERVICE_NAME, process_foo, [Atom]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME, process_too_long, [Atom]).
+process_crashing(Atom) -> csi:call_p(?SERVICE_NAME, process_crashing, [Atom]).

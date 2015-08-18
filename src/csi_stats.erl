@@ -18,9 +18,9 @@
         ]).
 
 init_stats() ->
-    [{response_time, [{"last_nth_to_collect", 10},
-                      {"normalize_to_nth", 8}]},
-     {req_per_sec, [{"time_window", 5}
+    [{response_time, [{"last_nth_to_collect", 50},
+                      {"normalize_to_nth", 40}]},
+     {req_per_sec, [{"time_window", 50}
                    ]}
     ].
 response_time(start, _Request, _R, Ref, _Params, _Tab, TempTab, TimeStamp) ->
@@ -41,11 +41,11 @@ response_time(stop, Request, _R, Ref, Params, Tab, TempTab, TimeStamp) ->
             {NormalizedART, NewNr} =
                 case proplists:get_value("last_nth_to_collect",
                                          Params,
-                                         10) =:= NrOfReqs of
+                                         50) =:= NrOfReqs of
                     true ->
                         NormalizeToNth = proplists:get_value("normalize_to_nth",
                                                              Params,
-                                                             8),
+                                                             40),
                         {( ART / NrOfReqs ) * NormalizeToNth,
                          NormalizeToNth + 1};
                     _ ->
@@ -58,8 +58,7 @@ response_time(stop, Request, _R, Ref, Params, Tab, TempTab, TimeStamp) ->
                                                         AllRespTime,
                                                         AllRespTime/NewNr,
                                                         NewMinRt,
-                                                        NewMaxRt}}),
-            ets:delete(TempTab, {response_time_first, Ref})
+                                                        NewMaxRt}})
     end;
 
 response_time(clean, _Request, _R, Ref, _Params, _Tab, TempTab, _TimeStamp) ->
@@ -81,7 +80,7 @@ req_per_sec(start, Request, _R, _Ref, Params, Tab, TempTab, TimeStamp) ->
     RTL =
         case proplists:get_value("nr_of_timestamps",
                                  Params,
-                                 10) =< length(ReceivedTimestampList) of
+                                 50) =< length(ReceivedTimestampList) of
             true ->
                 [TimeStamp | lists:droplast(ReceivedTimestampList)];
             _ ->
