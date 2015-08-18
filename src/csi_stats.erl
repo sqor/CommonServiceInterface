@@ -41,11 +41,11 @@ response_time(stop, Request, _R, Ref, Params, Tab, TempTab, TimeStamp) ->
             {NormalizedART, NewNr} =
                 case proplists:get_value("last_nth_to_collect",
                                          Params,
-                                         10) =:= NrOfReqs of
+                                         50) =:= NrOfReqs of
                     true ->
                         NormalizeToNth = proplists:get_value("normalize_to_nth",
                                                              Params,
-                                                             8),
+                                                             40),
                         {( ART / NrOfReqs ) * NormalizeToNth,
                          NormalizeToNth + 1};
                     _ ->
