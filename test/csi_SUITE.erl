@@ -153,7 +153,7 @@ end_per_testcase(_TestCase, _Config) ->
 %%--------------------------------------------------------------------
 groups() ->
     [{calls,
-      [{repeat_until_any_fail,2}],
+      [{repeat_until_any_fail,1}],
       [call, call_p, call_s]
      },
      {posts,
