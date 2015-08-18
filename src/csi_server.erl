@@ -350,7 +350,7 @@ handle_call({post_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                                TimeoutForProcessing, self(), true]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
-    {reply, {posted, {Pid, From}}, State};
+    {reply, {posted, Pid, From}, State};
 
 handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
     collect_stats(start, State, Request, R, Ref = make_ref()),
@@ -361,7 +361,7 @@ handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                                TimeoutForProcessing, self(), false]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
-    {reply, {casted, Pid, Ref} , State};
+    {reply, {casted, Pid} , State};
 
 handle_call(Request, From, State) ->
     collect_stats(start, State, Request, Request, Ref = make_ref()),
@@ -445,12 +445,12 @@ process_service_request(From, Module, Request, Args, State,
                         B,
                         erlang:get_stacktrace()]),
             catch gen_server:reply(From, {error, exception}),
-            case TRef of
-                undefined ->
-                    ok;
-                RealTRef0 ->
-                    erlang:cancel_timer(RealTRef0)
-            end,
+            _ = case TRef of
+                    undefined ->
+                        ok;
+                    RealTRef0 ->
+                        erlang:cancel_timer(RealTRef0)
+                end,
             erlang:exit(exception)
     end,
     case TRef of
@@ -528,10 +528,10 @@ handle_info(Info, State) ->
                     end;
                 {kill_worker_reply, Pid, CallerPid} ->
                     catch gen_server:reply(CallerPid, {error, timeout_killed}),
-                    ?LOGFORMAT(warning, "Worker killed with reply:~p", [Pid]),
+                    ?LOGFORMAT(warning, "Worker killed with reply. Pid:~p", [Pid]),
                     erlang:exit(Pid, kill);
                 {kill_worker_noreply, Pid} ->
-                    ?LOGFORMAT(warning, "Worker killed with no reply:~p",
+                    ?LOGFORMAT(warning, "Worker killed with no reply Pid:~p",
                                [Pid]),
                     erlang:exit(Pid, kill);
                 WAFIT ->

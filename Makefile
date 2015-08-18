@@ -105,3 +105,5 @@ PROJECT = csi
 # Use the same settings for compiling releases as well as for testing
 #ERLC_OPTS= $(ERLC_COMPILE_OPTS)
 #TEST_ERLC_OPTS= $(ERLC_COMPILE_OPTS)
+
+include erlang.mk

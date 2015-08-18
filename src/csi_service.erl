@@ -73,8 +73,8 @@ process_foo(_Args, State) ->
     {hello_world, State}.
 
 process_too_long(_Args, State) ->
-    timer:sleep(100000),
-    {long_job_fininshed, State}.
+    timer:sleep(5000),
+    {long_job_finished, State}.
 
 process_crashing(Args, State) ->
     A = Args - Args,
