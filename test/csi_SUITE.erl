@@ -51,7 +51,6 @@ init_per_suite(Config) ->
     ok = application:start(goldrush),
     ok = application:start(lager),
     ok = application:start(csi),
-    ts:start(),    
     Config.
 
 %%--------------------------------------------------------------------
@@ -154,15 +153,17 @@ end_per_testcase(_TestCase, _Config) ->
 groups() ->
     [{calls,
       [{repeat_until_any_fail,1}],
-      [call, call_p, call_s]
+      [call_foo, call_too_long, call_crashing,
+       call_p_foo, call_p_too_long, call_p_crashing,
+       call_s_foo, call_s_too_long, call_s_crashing]
      },
      {posts,
       [{repeat_until_any_fail,1}],
-      [post_p]
+      [post_p_foo, post_p_long, post_p_crash]
      },
      {casts,
       [{repeat_until_any_fail,1}],
-      [cast_p]}
+      [cast_p_foo, cast_p_long, cast_p_crash]}
     ].
 
 %%--------------------------------------------------------------------
@@ -223,18 +224,28 @@ my_test_case() ->
 my_test_case(_Config) -> 
     hello_world = ts:process_foo(halo).
 
-call(_Config) ->
-    hello_world = csi:process_foo_call(halo),
-    {error, timeout_killed} = csi:process_too_long_call_p(halo),
+call_foo(_Config) ->
+    hello_world = csi:process_foo_call(halo).
+
+call_too_long(_Config) ->
+    {error, timeout_killed} = csi:process_too_long_call_p(halo).
+
+call_crashing(_Config) ->
     {error, exception} = csi:process_crashing_call(halo).
 
-call_p(_Config) ->
-    hello_world = csi:process_foo_call_p(halo),
-    {error, timeout_killed} = csi:process_too_long_call_p(halo),
+call_p_foo(_Config) ->
+    hello_world = csi:process_foo_call_p(halo).
+
+call_p_too_long(_Config) ->
+    {error, timeout_killed} = csi:process_too_long_call_p(halo).
+
+call_p_crashing(_Config) ->
     {error, exception} = csi:process_crashing_call_p(halo).
 
-call_s(_Config) ->
-    hello_world = csi:process_foo_call_s(halo),
+call_s_foo(_Config) ->
+    hello_world = csi:process_foo_call_s(halo).
+
+call_s_too_long(_Config) ->
     {error, {timeout, {gen_server, call,
         [csi_service, {call_s, process_too_long, halo}, _]}}} =
             csi:process_too_long_call_s(halo),
@@ -243,10 +254,12 @@ call_s(_Config) ->
             ok;
         _ ->
             erlang:throw(badreturn)
-    end,
+    end.
+
+call_s_crashing(_Config) ->
     {error, exception} = csi:process_crashing_call_s(halo).
 
-post_p(_Config) ->
+post_p_foo(_Config) ->
     Self = self(),
     {posted, _FooPid, {Self, Ref}} = csi:process_foo_post_p(halo),
     receive
@@ -254,7 +267,10 @@ post_p(_Config) ->
             ok;
         _ ->
             erlang:throw(badreturn)
-    end,
+    end.
+
+post_p_long(_Config) ->
+    Self = self(),
     {posted, _TooLongPid, {Self, TooLongRef}} =
         csi:process_too_long_post_p(halo),
     receive
@@ -262,7 +278,10 @@ post_p(_Config) ->
             ok;
         _ ->
             erlang:throw(badreturn)
-    end,
+    end.
+
+post_p_crash(_Config) ->
+    Self = self(),
     {posted, _CrashPid, {Self, CrashRef}} =
         csi:process_crashing_post_p(halo),
     receive
@@ -272,13 +291,13 @@ post_p(_Config) ->
             erlang:throw(badreturn)
     end.
 
-cast_p(_Config) ->
-    {casted, _FooPid} = csi:process_foo_cast(halo),
+cast_p_foo(_Config) ->
+    {casted, _FooPid} = csi:process_foo_cast(halo).
+
+cast_p_long(_Config) ->
     {casted, _TooLongPid} =
-        csi:process_too_long_cast(halo),
+        csi:process_too_long_cast(halo).
+
+cast_p_crash(_Config) ->
     {casted, _CrashPid} =
         csi:process_crashing_cast(halo).
-%% 
-%%          process_foo_cast/1,
-%%          process_too_long_cast/1,
-%%          process_crashing_cast/1
