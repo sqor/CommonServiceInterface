@@ -58,8 +58,7 @@ response_time(stop, Request, _R, Ref, Params, Tab, TempTab, TimeStamp) ->
                                                         AllRespTime,
                                                         AllRespTime/NewNr,
                                                         NewMinRt,
-                                                        NewMaxRt}}),
-            ets:delete(TempTab, {response_time_first, Ref})
+                                                        NewMaxRt}})
     end;
 
 response_time(clean, _Request, _R, Ref, _Params, _Tab, TempTab, _TimeStamp) ->
@@ -81,7 +80,7 @@ req_per_sec(start, Request, _R, _Ref, Params, Tab, TempTab, TimeStamp) ->
     RTL =
         case proplists:get_value("nr_of_timestamps",
                                  Params,
-                                 10) =< length(ReceivedTimestampList) of
+                                 50) =< length(ReceivedTimestampList) of
             true ->
                 [TimeStamp | lists:droplast(ReceivedTimestampList)];
             _ ->

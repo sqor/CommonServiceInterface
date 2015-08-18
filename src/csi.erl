@@ -37,6 +37,7 @@
           call/4,
           cast_p/3,
           cast_p/4,
+          call_p/5,
           cast/2,
           post_p/3,
           post_p/4,
@@ -529,6 +530,24 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
                           ?DEFAULT_SERVER_TIMEOUT).
+
+%% call_p/5
+%% ====================================================================
+%% @doc call a service function parallel with arguments and timeouts
+%% @end
+-spec call_p(ServerName :: atom(),
+             Request :: atom(),
+             Args :: term(),
+             TimeoutForProcessing :: infinity | non_neg_integer(),
+             ServerTimeout :: infinity | non_neg_integer()) -> Reply when
+    Reply :: term().
+%% ====================================================================
+call_p(ServerName, Request, Args, TimeoutForProcessing, ServerTimeout) ->
+    csi_utils:call_server(ServerName,
+                          {call_p, Request, Args, TimeoutForProcessing},
+                          ?DEFAULT_SERVICE_RETRY,
+                          ?DEFAULT_SERVICE_SLEEP,
+                          ServerTimeout).
 
 %% call_s/2
 %% ====================================================================
