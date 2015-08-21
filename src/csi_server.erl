@@ -28,14 +28,10 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
-%% The number of times a gen server will be called in case it is down
-%% as waiting for the supervisor to relaunch it
+
 -export([process_service_request/8
         ]).
 
-%% ====================================================================
-%% Behavioural functions
-%% ====================================================================
 -record(csi_service_state, {service_name,
                             service_module,
                             service_state,
@@ -412,9 +408,18 @@ process_service_request(From, Module, Request, Args, State,
                RealTimeout ->
                    KillMessage = case NeedReply of
                                      true ->
-                                         {kill_worker_reply, self(), From};
+                                         {kill_worker_reply,
+                                          self(),
+                                          From,
+                                          Module,
+                                          Request,
+                                          Args};
                                      false ->
-                                         {kill_worker_noreply, self()}
+                                         {kill_worker_noreply,
+                                          self(),
+                                          Module,
+                                          Request,
+                                          Args}
                                  end,
                    erlang:send_after(RealTimeout,
                                      Parent,
@@ -526,13 +531,17 @@ handle_info(Info, State) ->
                                        " from process table~n",
                                        [Pid, WAFIT])
                     end;
-                {kill_worker_reply, Pid, CallerPid} ->
+                {kill_worker_reply, Pid, CallerPid, Module, Request, Args} ->
                     catch gen_server:reply(CallerPid, {error, timeout_killed}),
-                    ?LOGFORMAT(warning, "Worker killed with reply. Pid:~p", [Pid]),
+                    ?LOGFORMAT(warning,
+                               "Worker killed with reply. Pid:~p. "
+                               "Called function was: ~p:~p(~p)",
+                               [Pid, Module, Request, Args]),
                     erlang:exit(Pid, kill);
-                {kill_worker_noreply, Pid} ->
-                    ?LOGFORMAT(warning, "Worker killed with no reply Pid:~p",
-                               [Pid]),
+                {kill_worker_noreply, Pid, Module, Request, Args} ->
+                    ?LOGFORMAT(warning, "Worker killed with no reply Pid:~p. "
+                               "Called function was: ~p:~p(~p)",
+                               [Pid, Module, Request, Args]),
                     erlang:exit(Pid, kill);
                 WAFIT ->
                     ?LOGFORMAT(warning,
