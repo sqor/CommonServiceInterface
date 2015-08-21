@@ -1,5 +1,5 @@
 ## Name of the node
--name csi_server@127.0.0.1
+-name csi_server
 
 ## Cookie for distributed erlang
 -setcookie csi_server
