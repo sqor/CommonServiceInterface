@@ -10,6 +10,7 @@
 -module(csi_service).
 -behaviour(csi_server).
 -include("csi_common.hrl").
+-include("csi.hrl").
 
 %% ====================================================================
 %% API functions
@@ -25,7 +26,8 @@
 
 -export([stats_start_all/0,
          stats_stop_all/0,
-         services/2
+         services/2,
+         start_services/2
         ]).
 
 -export([collect_services_status/1
@@ -37,7 +39,7 @@
 
 % init the global service
 init_service(_InitArgs) ->
-%    csi:unregister(),
+    csi:cast(?CSI_SERVICE_NAME, {start_services,[]}),
     {ok, #csi_service_state{}}.
 
 % init paralell process
@@ -58,6 +60,16 @@ terminate(Reason, _State) ->
 terminate_service(_Reason, _State) ->
     ok.
 
+start_services(_Args, State) ->
+    ServerList =
+        case application:get_env(?CSI_APPLICATION_NAME, servers) of
+            {ok, Value} ->
+                Value;
+            undefined ->
+                []
+        end,
+    {start_servers(ServerList),State}.
+    
 services(_Args, State) ->
     {[erlang:process_info(X, registered_name) ||
         X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
@@ -118,3 +130,28 @@ collect_services_status(OwnState) ->
                 end,
                 [],
                 pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)).
+
+start_servers([]) ->
+    ok;
+
+start_servers([{Name, Module, InitArgs, ChildSpec} | Tail]) ->
+    Child = case ChildSpec of
+                default ->
+                    #{id => Name,
+                      start => {?CSI_APPLICATION_NAME,
+                                start_link,
+                                [Name, Module,InitArgs]},
+                      restart => permanent,
+                      shutdown => 2000,
+                      type => worker,
+                      modules => []};
+                _ ->
+                    ChildSpec
+            end,
+    case supervisor:start_child(csi_sup, Child) of
+        {ok, _WorkerPId} ->
+            ?LOGFORMAT(info,"Service ~p started by CSI.",[Name]);
+        WAFIT ->
+            ?LOGFORMAT(error,"CSI could not start service:~p. Reason:~p",[Name,WAFIT])
+    end,
+    start_servers(Tail).

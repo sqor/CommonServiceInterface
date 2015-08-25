@@ -350,7 +350,7 @@ stats_get_types(ServerName, TypeList)
 stats_get_types(ServerName, TypeList)
   when is_list(TypeList) ->
     gen_server:call(ServerName,
-                    {'$stats_get_type', TypeList},
+                    {'$stats_get_types', TypeList},
                     ?DEFAULT_SERVER_TIMEOUT).
 
 %% stats_get_specific/3
