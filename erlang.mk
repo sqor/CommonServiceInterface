@@ -12,7 +12,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-.PHONY: allerlang app deps search relerlang docs install-docs check tests cleanerlang distcleanerlang help
+.PHONY: allerlang app deps search relerlang docs install-docs check erlang-tests cleanerlang distcleanerlang help
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
@@ -85,7 +85,7 @@ allerlang:: deps
 relerlang::
 	$(verbose) echo -n
 
-check:: cleanerlang app tests
+check:: cleanerlang app erlang-tests
 
 cleanerlang:: clean-crashdump
 
@@ -112,7 +112,7 @@ help::
 		"  docs          Build the documentation for this project" \
 		"  install-docs  Install the man pages for this project" \
 		"  check         Compile and run all tests and analysis for this project" \
-		"  tests         Run the tests for this project" \
+		"  erlang-tests         Run the tests for this project" \
 		"  clean         Delete temporary and output files from most targets" \
 		"  distclean     Delete all temporary and output files" \
 		"  help          Display this help and exit" \
@@ -1335,7 +1335,7 @@ ci-$(1): $(CI_INSTALL_DIR)/$(1)
 		PATH="$(CI_INSTALL_DIR)/$(1)/bin:$(PATH)" \
 		CI_OTP_RELEASE="$(1)" \
 		CT_OPTS="-label $(1)" \
-		$(MAKE) clean ci-setup tests
+		$(MAKE) clean ci-setup erlang-tests
 endef
 
 $(foreach otp,$(CI_OTP),$(eval $(call ci_target,$(otp))))
@@ -1357,7 +1357,7 @@ $(KERL):
 help::
 	$(verbose) printf "%s\n" "" \
 		"Continuous Integration targets:" \
-		"  ci          Run '$(MAKE) tests' on all configured Erlang versions." \
+		"  ci          Run '$(MAKE) erlang-tests' on all configured Erlang versions." \
 		"" \
 		"The CI_OTP variable must be defined with the Erlang versions" \
 		"that must be tested. For example: CI_OTP = OTP-17.3.4 OTP-17.5.3"
@@ -1384,7 +1384,7 @@ endif
 
 # Core targets.
 
-tests:: ct
+erlang-tests:: ct
 
 distcleanerlang:: distclean-ct
 
@@ -1640,7 +1640,7 @@ EUNIT_OPTS ?=
 
 # Core targets.
 
-tests:: eunit
+erlang-tests:: eunit
 
 help::
 	$(verbose) printf "%s\n" "" \
@@ -1788,7 +1788,7 @@ ifneq ($(wildcard $(DEPS_DIR)/triq),)
 
 # Targets.
 
-tests:: triq
+erlang-tests:: triq
 
 define triq_check.erl
 	code:add_pathsa(["$(CURDIR)/ebin", "$(DEPS_DIR)/*/ebin"]),
@@ -1890,7 +1890,7 @@ endif
 
 ifdef COVER
 ifneq ($(COVER_REPORT_DIR),)
-tests::
+erlang-tests::
 	$(verbose) $(MAKE) --no-print-directory cover-report
 endif
 endif
