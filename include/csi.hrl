@@ -6,6 +6,7 @@
 %%% @end
 %%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
 %%%-------------------------------------------------------------------
+
 -define(CSI_SERVICE_NAME,csi_service).
 -define(CSI_APPLICATION_NAME,csi).
 -define(DEFAULT_STATS_MODULE,csi_stats).
