@@ -4,15 +4,15 @@ all: init compile
 
 CURR_DIR = $(shell pwd)
 DEPS_DIR ?= $(CURR_DIR)/deps
-DEPS = $(DEPS_DIR)
+DEPENDECIES = $(DEPS_DIR)
 $(DEPS_DIR):
 	mkdir $(DEPS_DIR)
 
 APPS = 
 
 # All the static upfront dependencies we need for the project
-init: $(DEPS) \
-	$(DEPS)/lager
+init: $(DEPENDECIES) \
+	$(DEPENDECIES)/lager
 
 
 # include the proper deps, per BUILD_ENV
@@ -20,10 +20,10 @@ BUILD_ENV ?= development
 ENV = $(BUILD_ENV)
 ifneq ("$(wildcard build_deps_$(BUILD_ENV).mk)","")
 	include build_deps_$(BUILD_ENV).mk
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPENDECIES)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 else
 	include build_deps_development.mk
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPENDECIES)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 endif
 
 
@@ -37,7 +37,7 @@ $(APP_FILES): $(APPSRC_FILES)
 	cp $(subst ebin/,src/,$@).src $@
 
 compile: init Emakefile ebin $(APP_FILES)
-	erl -noinput -pa $(DEPS)/*/ebin -eval '$(ERL_MAKE)'
+	erl -noinput -pa $(DEPENDECIES)/*/ebin -eval '$(ERL_MAKE)'
 
 ERL_SOURCES=$(shell ls src/*.?rl)
 
@@ -47,11 +47,11 @@ Emakefile: $(ERL_SOURCES)
 ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
 distclean: clean
-	-rm -rf $(DEPS)
+	-rm -rf $(DEPENDECIES)
 
 clean:
 	-rm -rf ebin
-	-rm -rf scripts
+	-rm scripts/relx
 	-rm Emakefile
 	-rm -rf logs
 	-rm `find . -name '*.beam' | grep -v deps`
@@ -83,14 +83,13 @@ test: compile
 		-erl_args -noshell \
 			-setcookie test/cookie
 
-
 APPNAME = $(shell erl -noinput -eval 'begin {ok, List} = file:consult("relx.config"), {_, {AppName, Version},_} = proplists:lookup(release, List), io:format("~p~n", [AppName]), halt(0) end.')
 VERSION = $(shell erl -noinput -eval 'begin {ok, List} = file:consult("relx.config"), {_, {AppName, Version},_} = proplists:lookup(release, List), io:format("~s~n", [Version]), halt(0) end.')
 
 run: rel
 	_rel/$(APPNAME)/bin/$(APPNAME) console
 
-
+tests:	test
 
 
 PROJECT = csi
