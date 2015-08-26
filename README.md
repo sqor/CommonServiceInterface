@@ -312,6 +312,45 @@ For example:
 
 meaning there were 3 requests for process_foo, the total time processing these requests was 243 usecs, The average time was 81 usecs, fastest request processing was 78 usecs, slowest was 85 usecs
 
+## Generic application functionality
+
+In the stream above we saw how to implement a service using CSI. You might have recognized, there has been fixed part of the code especially when initializing a service. All calls for start, start_link, stop are the same for any service, and usually supervising the application is the same boring process for any app.
+
+To ease our life, there is an additional functionality of CSI. In case we use it, we can have CSI supervising our service servers by simply add the necessary information into our sys.config file. For example if we have a service called app_service, the service functions are in app_service.erl we can instruct CSI at startup to launch our server by including the following in sys.config:
+
+    {csi,[{servers,[{app_service,app_service,[],default}]
+           }
+          ]}
+          
+The servers tag in the tuple instruct CSI at startup to run through the list of tuples containing the information to launch a service. The format is {ServiceName, ServiceModule, InitArgs, ChildSpec}. The first three speak for themselves, the ChildSpec is the specification for the supervisor, how the service shall be added as a child. See supervisor:add_child/2 in Erlang docs.
+
+When we have this, there are three files needs to be maintained.
+
+The app_service.erl will be the same as above, but the app.erl will be a bit simpler. This is the API for the service and now purely contains the functionality:
+
+```erlang
+-module(app).
+
+-define(SERVICE_NAME, app_service).
+-define(SERVICE_MODULE, app_service).
+
+%% ====================================================================
+%% API functions
+%% ====================================================================
+
+-export([process_foo/1,
+         process_too_long/1,
+         process_crashing/1]).
+
+process_foo(Atom) -> csi:call_p(?SERVICE_NAME, process_foo, [Atom]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME, process_too_long, [Atom]).
+process_crashing(Atom) -> csi:call_p(?SERVICE_NAME, process_crashing, [Atom]).
+```
+
+The other two files, relx.config and app.src remains the same as above.
+
+An example is set up in the generic_app directory, so in case you would like to start developing your service, you might copy the directory, make the changes for your service and start extending it with the functionality you need.
+
 Feel free to come up with more lightweight stats!
 
 ## Please share your thoughts, suggest improvements, find bugs and report them!
