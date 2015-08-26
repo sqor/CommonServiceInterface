@@ -351,6 +351,24 @@ The other two files, relx.config and app.src remains the same as above.
 
 An example is set up in the generic_app directory, so in case you would like to start developing your service, you might copy the directory, make the changes for your service and start extending it with the functionality you need.
 
+### sys.config Child Specification
+
+In case you need other than defaul child specification, here is an example for your sys.config:
+
+    {csi,[{servers,[{app_service,app_service,[],
+                          #{id => app_service,
+                          start => {csi,
+                                    start_link,
+                                    [app_service, app_service, []]},
+                          restart => permanent,
+                          shutdown => 2000,
+                          type => worker,
+                          modules => [app,app_service]}}]
+           }]
+     }
+
+So to use a ChildSpec as a map, instead of just using the default values that are the same as in the example here.
+
 Feel free to come up with more lightweight stats!
 
 ## Please share your thoughts, suggest improvements, find bugs and report them!
