@@ -1,0 +1,15 @@
+{application, app, [
+    {description, "Your Application service"},
+    {vsn, "0.0.1"},
+    {id, "git"},
+    {modules, [app,app_service]},
+    {registered, []},
+    {applications, [
+        kernel,
+        compiler,
+        stdlib,
+        syntax_tools,
+        csi
+    ]},
+    {env, []}
+]}.
