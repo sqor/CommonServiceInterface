@@ -39,7 +39,7 @@
 
 % init the global service
 init_service(_InitArgs) ->
-    csi:cast(?CSI_SERVICE_NAME, {start_services,[]}),
+    csi:cast(?CSI_SERVICE_NAME, start_services, []),
     {ok, #csi_service_state{}}.
 
 % init paralell process
@@ -76,10 +76,14 @@ services(_Args, State) ->
      State}.
 
 handle_call({Request, Args}, _From, State) ->
+    ?LOGFORMAT(info,"Calling service through handle_call(~p)",[{Request, Args}]),
+    {Reply, NewState} = ?MODULE:Request(Args, State),
+    {reply, Reply, NewState};
+
+handle_call(Request, _From, State) ->
     ?LOGFORMAT(warning, "Unhandled request:~p for csi_service with state:~p~n",
                [Request, State]),
-    {Reply, NewState} = ?MODULE:Request(Args, State),
-    {reply, Reply, NewState}.
+    {reply, ok, State}.
 
 process_foo(_Args, State) ->
     {hello_world, State}.

@@ -359,11 +359,11 @@ handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                {Pid, Ref, Request, R}),
     {reply, {casted, Pid} , State};
 
-handle_call(Request, From, State) ->
+handle_call({Request, Args}, From, State) ->
     collect_stats(start, State, Request, Request, Ref = make_ref()),
     Module = State#csi_service_state.service_module,
     try
-        ReturnValue = Module:handle_call(Request,
+        ReturnValue = Module:handle_call({Request, Args},
                                          From,
                                          State#csi_service_state.service_state),
         collect_stats(stop, State, Request, Request, Ref),
@@ -478,8 +478,8 @@ process_service_request(From, Module, Request, Args, State,
     NewState :: term(),
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
-handle_cast({cast, FunctionRequest}, State) ->
-    _ = handle_call(FunctionRequest, {self(), make_ref()}, State),
+handle_cast({cast, FunctionRequest, Args}, State) ->
+    _ = handle_call({FunctionRequest, Args}, {self(), make_ref()}, State),
     {noreply, State};
 
 
