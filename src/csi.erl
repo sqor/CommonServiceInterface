@@ -39,6 +39,7 @@
           cast_p/4,
           call_p/5,
           cast/2,
+          cast/3,
           post_p/3,
           post_p/4,
           stats_start/0,
@@ -666,7 +667,20 @@ cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
 %% ====================================================================
 cast(ServerName, Request) ->
      gen_server:cast(ServerName,
-                     {cast, Request}).
+                     {cast, Request, []}).
+
+%% cast/3
+%% ====================================================================
+%% @doc cast a service request
+%% @end
+-spec cast(ServerName :: atom(),
+           Request :: term(),
+           Args :: term()) -> Reply when
+    Reply :: term().
+%% ====================================================================
+cast(ServerName, Request, Args) ->
+     gen_server:cast(ServerName,
+                     {cast, Request, Args}).
 
 %% register/0
 %% ====================================================================

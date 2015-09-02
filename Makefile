@@ -20,10 +20,8 @@ BUILD_ENV ?= development
 ENV = $(BUILD_ENV)
 ifneq ("$(wildcard build_deps_$(BUILD_ENV).mk)","")
 	include build_deps_$(BUILD_ENV).mk
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPENDECIES)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 else
 	include build_deps_development.mk
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPENDECIES)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}, {d, debug}
 endif
 
 
@@ -32,6 +30,8 @@ ebin:
 
 APPSRC_FILES = $(shell find src -name "*.app.src")
 APP_FILES = $(subst src/,ebin/,$(subst .src,,$(APPSRC_FILES)))
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPENDECIES)"}, {i, "include"}, {parse_transform, lager_transform}, {d, lager}
+ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
 $(APP_FILES): $(APPSRC_FILES)
 	cp $(subst ebin/,src/,$@).src $@
@@ -44,7 +44,6 @@ ERL_SOURCES=$(shell ls src/*.?rl)
 Emakefile: $(ERL_SOURCES)
 	echo "{[\"src/*\"], [{outdir, \"ebin\"}]}." > Emakefile
 
-ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
 distclean: clean
 	-rm -rf $(DEPENDECIES)
