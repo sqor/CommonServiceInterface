@@ -29,6 +29,8 @@ endif
 
 APPSRC_FILES = $(shell find src -name "*.app.src")
 APP_FILES = $(subst src/,ebin/,$(subst .src,,$(APPSRC_FILES)))
+ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}
+ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
 compile: init Emakefile ebin $(APP_FILES)
 	erl -noinput -pa $(DEPS)/*/ebin -eval '$(ERL_MAKE)'
@@ -38,9 +40,7 @@ ERL_SOURCES=$(shell ls src/*.?rl)
 Emakefile: $(ERL_SOURCES)
 	echo "{[\"src/*\"], [{outdir, \"ebin\"}]}." > Emakefile
 
-ERL_MAKE=case make:all([ $(ERL_MAKE_OPTS) ]) of up_to_date -> halt(0); error -> halt(1) end.
 
-ERL_MAKE_OPTS=debug_info, report, {i, "$(DEPS)"}, {i, "include"}, {parse_transform, lager_transform}
 
 distclean: clean
 	-rm -rf $(DEPS)

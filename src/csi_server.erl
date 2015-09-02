@@ -535,12 +535,12 @@ handle_info(Info, State) ->
                     catch gen_server:reply(CallerPid, {error, timeout_killed}),
                     ?LOGFORMAT(warning,
                                "Worker killed with reply. Pid:~p. "
-                               "Called function was: ~p:~p(~p)",
+                               "Called function was: ~p:~p(~p)~n",
                                [Pid, Module, Request, Args]),
                     erlang:exit(Pid, kill);
                 {kill_worker_noreply, Pid, Module, Request, Args} ->
                     ?LOGFORMAT(warning, "Worker killed with no reply Pid:~p. "
-                               "Called function was: ~p:~p(~p)",
+                               "Called function was: ~p:~p(~p)~n",
                                [Pid, Module, Request, Args]),
                     erlang:exit(Pid, kill);
                 WAFIT ->
