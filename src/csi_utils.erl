@@ -49,7 +49,7 @@ add_elems_to_list(ElemList, List) ->
 
 remove_elems_from_list(ElemList, List) ->
     lists:filter(fun (Elem) ->
-                          lists:member(Elem, ElemList)
+                          not lists:member(Elem, ElemList)
                  end,
                  List).
 
