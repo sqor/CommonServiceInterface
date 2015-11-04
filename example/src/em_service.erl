@@ -39,7 +39,8 @@ process_foo(_Args,State) ->
     {hello_world,State}.
 
 process_too_long(_Args,State) ->
-    timer:sleep(5000),
+    {ok, Sleep} = application:get_env(timer_sleep),
+    timer:sleep(Sleep),
     {long_job_fininshed,State}.
 
 process_crashing(Args,State) ->

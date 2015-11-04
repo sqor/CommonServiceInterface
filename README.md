@@ -5,7 +5,7 @@
 ## Build environment
 In case you use erlang.mk and relx the Quick start section contains the necessary setup. Otherwise just make sure the dependency on csi is included in your build environment
 
-# Quick start on using CSI with erlang.mk
+## Quick start on using CSI with erlang.mk
 In your application root directory, make sure the following are inserted into your Makefile
 
     PROJECT = yourapplicationname
@@ -18,11 +18,11 @@ In your application root directory, make sure the following are inserted into yo
     # Compile flags
     # if you want to have lager used by CSI include -Dlager
     # 
-    ERLC_COMPILE_OPTS= -Dlager
+    ERLC_COMPILE_OPTS += -Dlager
 
     # Use the same settings for compiling releases as well as for testing
-    ERLC_OPTS= $(ERLC_COMPILE_OPTS)
-    TEST_ERLC_OPTS= $(ERLC_COMPILE_OPTS)
+    ERLC_OPTS += $(ERLC_COMPILE_OPTS)
+    TEST_ERLC_OPTS += $(ERLC_COMPILE_OPTS)
 
 Include csi in your relx.config, similar to this:
 
@@ -34,11 +34,30 @@ Include csi in your relx.config, similar to this:
     
 In your app.src file, include csi in the applications section.
 
-    $>make
+    $>make run
     
 You will have csi included in your application from now on.
-    
-# Quick Start with the example
+
+## Recommended configuration layout
+
+In the csi example application you can see what is the recommended configuration layout of Erlang applications here. In the config/generate-config.sh you can see the roles of different files.
+
+In general `sys.config` will be generated from `template.sys.config` using config vars from `config.vars`. In `config.vars` there are different section for build environments. In the lack of template file, just sys.config will be used, so templating is optional. In addition you can use `override.vars` to overwrite specific config element for any application (dependencies or the main application). An example for `override.vars`
+
+```erlang
+{dev, [
+    %% To set or replace the hwm of lager
+    {"lager.error_logger_hwm", 500},
+    %% To remove this key from the config term
+    "lager.async_threshold_window"
+]}.
+{prod, [
+    {"lager.log_root", "/var/log/stats-feed/log"}
+]}.
+```
+String paths are converted to atom list so only config values referenced by atoms can be manipulated.
+
+## Quick Start with the example
 Clone the repository, go to its directory.
 
     cd example
