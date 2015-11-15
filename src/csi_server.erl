@@ -42,7 +42,8 @@
                             stats_module = ?DEFAULT_STATS_MODULE,
                             stats_requests_include = [all],
                             stats_requests_exclude = [],
-                            stats_types = []
+                            stats_types = [],
+                            service_timeout = ?DEFAULT_SERVICE_TIMEOUT
                            }).
 
 -type csi_service_state() :: #csi_service_state{}.
@@ -54,7 +55,10 @@
 %% @doc <a href="http://www.erlang.org/doc/man/gen_server.html#Module:init-1">
 %% gen_server:init/1</a>
 %% @end
--spec init({Name :: atom(), Module :: atom(), InitArgs :: term()}) ->
+-spec init({Name :: atom(),
+            Module :: atom(),
+            InitArgs :: term(),
+            Options :: property_list()}) ->
           Result when
     Result :: {ok, State}
             | {ok, State, Timeout}
@@ -64,7 +68,7 @@
     State :: term(),
     Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
-init({Name, Module, InitArgs}) ->
+init({Name, Module, InitArgs, Options}) ->
     process_flag(trap_exit, true),
     StatTable = ets:new(Name, [private]),
     StatTempTable = ets:new(list_to_atom(atom_to_list(Name) ++ "_temp"),
@@ -82,7 +86,12 @@ init({Name, Module, InitArgs}) ->
                                             ?DEFAULT_STATS_MODULE:init_stats(),
                                         stats_table = StatTable,
                                         stats_temp_table = StatTempTable,
-                                        stats_process_table = ProcTable}};
+                                        stats_process_table = ProcTable,
+                                        service_timeout =
+                                            proplists:get_value(
+                                              service_timeout,
+                                              Options,
+                                              ?DEFAULT_SERVICE_TIMEOUT)}};
             WAFIT ->
                 {stop, WAFIT}
         end
@@ -126,6 +135,19 @@ init({Name, Module, InitArgs}) ->
 
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
+
+handle_call({'$set_options', Options}, _From, State) ->
+    NewState =
+        lists:foldl(
+          fun({Param, Value}, AccIn) ->
+                  case Param of
+                      service_timeout ->
+                          AccIn#csi_service_state{service_timeout = Value};
+                      _ ->
+                          AccIn
+                  end
+          end, State, Options),
+    {reply, NewState, NewState};
 
 handle_call('$collect_services_status', _From, State) ->
     {reply, csi_service:collect_services_status(State), State};
@@ -302,7 +324,8 @@ handle_call({call_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                               process_service_request,
                               [From, State#csi_service_state.service_module,
                                Request, Args, State,
-                               TimeoutForProcessing, self(), true]),
+                               find_timeout(TimeoutForProcessing, State),
+                               self(), true]),
     ets:insert(State#csi_service_state.stats_process_table, {Pid,
                                                              Ref,
                                                              Request,
@@ -343,7 +366,8 @@ handle_call({post_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                               process_service_request,
                               [From, State#csi_service_state.service_module,
                                Request, Args, State,
-                               TimeoutForProcessing, self(), true]),
+                               find_timeout(TimeoutForProcessing, State),
+                               self(), true]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
     {reply, {posted, Pid, From}, State};
@@ -354,7 +378,8 @@ handle_call({cast_p, Request, Args, TimeoutForProcessing} = R, From, State) ->
                               process_service_request,
                               [From, State#csi_service_state.service_module,
                                Request, Args, State,
-                               TimeoutForProcessing, self(), false]),
+                               find_timeout(TimeoutForProcessing, State),
+                               self(), false]),
     ets:insert(State#csi_service_state.stats_process_table,
                {Pid, Ref, Request, R}),
     {reply, {casted, Pid} , State};
@@ -658,4 +683,14 @@ stats_to_collect(Request, State) ->
                          State#csi_service_state.stats_requests_include) and
                 not lists:member(Request,
                                  State#csi_service_state.stats_requests_exclude)
+    end.
+
+find_timeout(TimeOut, State) ->
+    case TimeOut of
+        undefined ->
+            State#csi_service_state.service_timeout;
+        default ->
+            ?DEFAULT_SERVICE_TIMEOUT;
+        _ ->
+            TimeOut
     end.

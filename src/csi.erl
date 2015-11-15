@@ -11,7 +11,7 @@
 -compile([{parse_transform, lager_transform}, {export_all}]).
 
 -include("csi.hrl").
--include("csi_common.hrl").
+-include("csi_common.hrl"). 
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -23,6 +23,8 @@
           start_link/2,
           start/3,
           start_link/3,
+          start/4,
+          start_link/4,
           stop/1,
           services/0,
           services_status/0,
@@ -62,7 +64,9 @@
           stats_param_get/3,
           stats_param_set/4,
           register/0,
-          unregister/0
+          unregister/0,
+          set_options/1,
+          set_options/2
         ]).
 
 -export([list_macros/0,
@@ -140,9 +144,24 @@ start(ServerName, Module) ->
     Error :: {already_started, Pid} | term().
 %% ====================================================================
 start(ServerName, Module, InitArgs) ->
+    start(ServerName, Module, InitArgs, ?CSI_DEFAULT_OPTIONS).
+
+%% start/4
+%% ====================================================================
+%% @doc starts a service through the Common Service Interface service
+%% @end
+-spec start(ServerName :: atom(),
+            Module :: atom(),
+            InitArgs :: term(),
+            Options :: property_list()) -> Result when
+    Result :: {ok, Pid} | ignore | {error, Error},
+    Pid :: pid(),
+    Error :: {already_started, Pid} | term().
+%% ====================================================================
+start(ServerName, Module, InitArgs, Options) ->
     gen_server:start({local, ServerName},
                      ?CSI_SERVER_MODULE,
-                     {ServerName, Module, InitArgs},
+                     {ServerName, Module, InitArgs, Options},
                      []).
 
 %% start_link/2
@@ -157,7 +176,7 @@ start(ServerName, Module, InitArgs) ->
 %% ====================================================================
 
 start_link(ServerName, Module) ->
-    start_link(ServerName, Module, []).
+    start_link(ServerName, Module, undefined).
 
 %% start_link/3
 %% ====================================================================
@@ -171,9 +190,24 @@ start_link(ServerName, Module) ->
     Error :: {already_started, Pid} | term().
 %% ====================================================================
 start_link(ServerName, Module, InitArgs) ->
+    start_link(ServerName, Module, InitArgs, ?CSI_DEFAULT_OPTIONS).
+
+%% start_link/4
+%% ====================================================================
+%% @doc starts a service through the Common Service Interface service
+%% @end
+-spec start_link(ServerName :: atom(),
+            Module :: atom(),
+            InitArgs :: term(),
+            Options :: property_list()) -> Result when
+    Result :: {ok, Pid} | ignore | {error, Error},
+    Pid :: pid(),
+    Error :: {already_started, Pid} | term().
+%% ====================================================================
+start_link(ServerName, Module, InitArgs, Options) ->
     gen_server:start_link({local, ServerName},
                           ?CSI_SERVER_MODULE,
-                          {ServerName, Module, InitArgs},
+                          {ServerName, Module, InitArgs, Options},
                           []).
 
 %% stop/1
@@ -501,7 +535,7 @@ stats_change_module(ServerName, Module) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request) ->
-    call_p(ServerName, Request, [], ?DEFAULT_SERVICE_TIMEOUT).
+    call_p(ServerName, Request, [], undefined).
 
 %% call_p/3
 %% ====================================================================
@@ -513,7 +547,7 @@ call_p(ServerName, Request) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args) ->
-    call_p(ServerName, Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
+    call_p(ServerName, Request, Args, undefined).
 
 %% call_p/4
 %% ====================================================================
@@ -526,11 +560,11 @@ call_p(ServerName, Request, Args) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args, TimeoutForProcessing) ->
-    csi_utils:call_server(ServerName,
-                          {call_p, Request, Args, TimeoutForProcessing},
-                          ?DEFAULT_SERVICE_RETRY,
-                          ?DEFAULT_SERVICE_SLEEP,
-                          ?DEFAULT_SERVER_TIMEOUT).
+    call_p(ServerName,
+           Request,
+           Args,
+           TimeoutForProcessing,
+           ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_p/5
 %% ====================================================================
@@ -629,7 +663,7 @@ call(ServerName, Request, Args, TimeoutForProcessing) ->
     Reply :: term().
 %% ====================================================================
 post_p(ServerName, Request, Args) ->
-    post_p(ServerName, Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
+    post_p(ServerName, Request, Args, undefined).
 
 %% post_p/4
 %% ====================================================================
@@ -649,7 +683,7 @@ post_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           ?DEFAULT_SERVER_TIMEOUT).
 %% @TODO implement cast_server in cu
 cast_p(ServerName, Request, Args) ->
-    cast_p(ServerName, Request, Args, ?DEFAULT_SERVICE_TIMEOUT).
+    cast_p(ServerName, Request, Args, undefined).
 cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
     csi_utils:call_server(ServerName,
                    {cast_p, Request, Args, TimeoutForProcessing},
@@ -666,8 +700,7 @@ cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
     Reply :: term().
 %% ====================================================================
 cast(ServerName, Request) ->
-     gen_server:cast(ServerName,
-                     {cast, Request, []}).
+     cast(ServerName, {cast, Request, []}).
 
 %% cast/3
 %% ====================================================================
@@ -701,6 +734,32 @@ register() ->
 %% ====================================================================
 unregister() ->
     pg2:leave(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
+
+%% set_options/1
+%% ====================================================================
+%% @doc set options for the CSI service
+%% @end
+-spec set_options(Options :: property_list()) -> Reply when
+    Reply :: term().
+%% ====================================================================
+set_options(Options) ->
+    set_options(?CSI_SERVICE_NAME, Options).
+
+%% set_options/2
+%% ====================================================================
+%% @doc set options for a service in CSI
+%% @end
+-spec set_options(ServerName :: atom(),
+                  Options :: property_list()) -> Reply when
+    Reply :: term().
+%% ====================================================================
+set_options(ServerName, Options) ->
+    csi_utils:call_server(ServerName,
+                   {'$set_options', Options},
+                   ?DEFAULT_SERVICE_RETRY,
+                   ?DEFAULT_SERVICE_SLEEP,
+                   ?DEFAULT_SERVER_TIMEOUT).
+
 
 % Test functions
 list_macros() ->

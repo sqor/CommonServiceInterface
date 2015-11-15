@@ -163,7 +163,10 @@ groups() ->
      },
      {casts,
       [{repeat_until_any_fail,1}],
-      [cast_p_foo, cast_p_long, cast_p_crash]}
+      [cast_p_foo, cast_p_long, cast_p_crash]},
+     {stats,
+      [{repeat_until_any_fail,1}],
+      [set_options]}
     ].
 
 %%--------------------------------------------------------------------
@@ -183,7 +186,8 @@ groups() ->
 all() -> 
     [{group, calls},
      {group, posts},
-     {group, casts}].
+     {group, casts},
+     {group, stats}].
 
 
 %%--------------------------------------------------------------------
@@ -301,3 +305,6 @@ cast_p_long(_Config) ->
 cast_p_crash(_Config) ->
     {casted, _CrashPid} =
         csi:process_crashing_cast(halo).
+
+set_options(_Config) ->
+    csi:set_options([{service_timeout, 1000}]).
