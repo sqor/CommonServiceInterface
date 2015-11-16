@@ -43,7 +43,7 @@
                             stats_requests_include = [all],
                             stats_requests_exclude = [],
                             stats_types = [],
-                            service_timeout = ?DEFAULT_SERVICE_TIMEOUT
+                            server_timeout = ?DEFAULT_SERVER_TIMEOUT
                            }).
 
 -type csi_service_state() :: #csi_service_state{}.
@@ -87,11 +87,11 @@ init({Name, Module, InitArgs, Options}) ->
                                         stats_table = StatTable,
                                         stats_temp_table = StatTempTable,
                                         stats_process_table = ProcTable,
-                                        service_timeout =
+                                        server_timeout =
                                             proplists:get_value(
-                                              service_timeout,
+                                              server_timeout,
                                               Options,
-                                              ?DEFAULT_SERVICE_TIMEOUT)}};
+                                              ?DEFAULT_SERVER_TIMEOUT)}};
             WAFIT ->
                 {stop, WAFIT}
         end
@@ -141,8 +141,8 @@ handle_call({'$set_options', Options}, _From, State) ->
         lists:foldl(
           fun({Param, Value}, AccIn) ->
                   case Param of
-                      service_timeout ->
-                          AccIn#csi_service_state{service_timeout = Value};
+                      server_timeout ->
+                          AccIn#csi_service_state{server_timeout = Value};
                       _ ->
                           AccIn
                   end
@@ -688,9 +688,9 @@ stats_to_collect(Request, State) ->
 find_timeout(TimeOut, State) ->
     case TimeOut of
         undefined ->
-            State#csi_service_state.service_timeout;
+            State#csi_service_state.server_timeout;
         default ->
-            ?DEFAULT_SERVICE_TIMEOUT;
+            ?DEFAULT_SERVER_TIMEOUT;
         _ ->
             TimeOut
     end.

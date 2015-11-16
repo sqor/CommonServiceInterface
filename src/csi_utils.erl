@@ -100,7 +100,7 @@ watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout) ->
 %% call_server/2
 %% ====================================================================
 %% @doc Call a gen server with a ServerName and Request
-%% with timeout : {?DEFAULT_SERVER_TIMEOUT},
+%% with timeout : {?DEFAULT_CLIENT_TIMEOUT},
 %%      retry   : {?DEFAULT_SERVICE_RETRY},
 %%      sleep   : {?DEFAULT_SERVICE_SLEEP}
 %% @end
@@ -111,7 +111,7 @@ watchdog_loop(SenderPid, MessageToSendWhenTimeout, Timeout) ->
 call_server(Server, Request) ->
     call_server(Server,
                 Request,
-                ?DEFAULT_SERVER_TIMEOUT,
+                ?DEFAULT_CLIENT_TIMEOUT,
                 ?DEFAULT_SERVICE_RETRY,
                 ?DEFAULT_SERVICE_SLEEP,
                 ?DEFAULT_SERVICE_RETRY).
@@ -119,7 +119,7 @@ call_server(Server, Request) ->
 %% call_server/3
 %% ====================================================================
 %% @doc Call a gen server with a ServerName, Arguments, Retry count,
-%% default timeout      : ?DEFAULT_SERVER_TIMEOUT,
+%% default timeout      : ?DEFAULT_CLIENT_TIMEOUT,
 %% default sleep time   : ?DEFAULT_SERVICE_SLEEP
 %% @end
 -spec call_server(Server :: atom(),
@@ -130,7 +130,7 @@ call_server(Server, Request) ->
 call_server(Server, Request, Retry) ->
     call_server(Server,
                 Request,
-                ?DEFAULT_SERVER_TIMEOUT,
+                ?DEFAULT_CLIENT_TIMEOUT,
                 Retry,
                 ?DEFAULT_SERVICE_SLEEP,
                 Retry).
@@ -149,7 +149,7 @@ call_server(Server, Request, Retry) ->
 call_server(Server, Request, Retry, Sleep) ->
     call_server(Server,
                 Request,
-                ?DEFAULT_SERVER_TIMEOUT,
+                ?DEFAULT_CLIENT_TIMEOUT,
                 Retry,
                 Sleep,
                 Retry).

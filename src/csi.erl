@@ -220,7 +220,7 @@ start_link(ServerName, Module, InitArgs, Options) ->
 stop(ServerName) ->
     gen_server:call(ServerName,
                     stop,
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% services/0
 %% ====================================================================
@@ -251,7 +251,7 @@ services() ->
 services_status() ->
     gen_server:call(?CSI_SERVICE_NAME,
                     '$collect_services_status',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% service_status/1
 %% ====================================================================
@@ -263,7 +263,7 @@ services_status() ->
 service_status(ServerName) ->
     gen_server:call(ServerName,
                     '$service_status',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_start/0
 %% ====================================================================
@@ -275,7 +275,7 @@ service_status(ServerName) ->
 stats_start() ->
     gen_server:call(?CSI_SERVICE_NAME,
                     '$stats_start_all',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_start/1
 %% ====================================================================
@@ -287,7 +287,7 @@ stats_start() ->
 stats_start(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_start',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_stop/0
 %% ====================================================================
@@ -299,7 +299,7 @@ stats_start(ServerName) ->
 stats_stop() ->
     gen_server:call(?CSI_SERVICE_NAME,
                     '$stats_stop_all',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_stop/1
 %% ====================================================================
@@ -311,7 +311,7 @@ stats_stop() ->
 stats_stop(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_stop',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_include_funs/2
 %% ====================================================================
@@ -324,7 +324,7 @@ stats_stop(ServerName) ->
 stats_include_funs(ServerName, FunctionList) ->
     gen_server:call(ServerName, {'$stats_include_funs',
                                  FunctionList},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_exclude_funs/2
 %% ====================================================================
@@ -337,7 +337,7 @@ stats_include_funs(ServerName, FunctionList) ->
 stats_exclude_funs(ServerName, FunctionList) ->
     gen_server:call(ServerName,
                     {'$stats_exclude_funs', FunctionList},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_get_all/1
 %% ====================================================================
@@ -350,7 +350,7 @@ stats_exclude_funs(ServerName, FunctionList) ->
 stats_get_all(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_get_all',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_get_funs/2
 %% ====================================================================
@@ -368,7 +368,7 @@ stats_get_funs(ServerName, FunctionList)
   when is_list(FunctionList) ->
     gen_server:call(ServerName,
                     {'$stats_get_funs', FunctionList},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_get_types/2
 %% ====================================================================
@@ -386,7 +386,7 @@ stats_get_types(ServerName, TypeList)
   when is_list(TypeList) ->
     gen_server:call(ServerName,
                     {'$stats_get_types', TypeList},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_get_specific/3
 %% ====================================================================
@@ -400,7 +400,7 @@ stats_get_types(ServerName, TypeList)
 stats_get_specific(ServerName, Function, Type) ->
     gen_server:call(ServerName,
                     {'$stats_get_specific', Function, Type},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_get_process_table/1
 %% ====================================================================
@@ -412,7 +412,7 @@ stats_get_specific(ServerName, Function, Type) ->
 stats_get_process_table(ServerName) ->
     gen_server:call(ServerName,
                     '$stats_get_process_table',
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_set_funs/2
 %% ====================================================================
@@ -426,7 +426,7 @@ stats_set_funs(ServerName, FunctionList)
   when is_list(FunctionList) ->
     gen_server:call(ServerName,
                     {'$stats_set_funs', FunctionList},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_set_param/4
 %% ====================================================================
@@ -441,7 +441,7 @@ stats_set_funs(ServerName, FunctionList)
 stats_param_set(ServerName, Type, Parameter, Value) ->
     gen_server:call(ServerName,
                     {'$stats_param_set', Type, Parameter, Value},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_param_get/3
 %% ====================================================================
@@ -455,7 +455,7 @@ stats_param_set(ServerName, Type, Parameter, Value) ->
 stats_param_get(ServerName, Type, Parameter) ->
     gen_server:call(ServerName,
                     {'$stats_param_get', Type, Parameter},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_params/1
 %% ====================================================================
@@ -467,7 +467,7 @@ stats_param_get(ServerName, Type, Parameter) ->
 stats_params(ServerName) ->
     gen_server:call(ServerName,
                     {'$stats_params'},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 
 %% stats_params/2
@@ -481,7 +481,7 @@ stats_params(ServerName) ->
 stats_params(ServerName, Type) ->
     gen_server:call(ServerName,
                     {'$stats_params', Type},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_include_type/2
 %% ====================================================================
@@ -497,7 +497,7 @@ stats_include_type(ServerName, Type)
   when is_atom(Type) ->
     gen_server:call(ServerName,
                     {'$stats_include_type', Type},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_exclude_type/2
 %% ====================================================================
@@ -511,7 +511,7 @@ stats_exclude_type(ServerName, Type)
   when is_atom(Type) ->
     gen_server:call(ServerName,
                     {'$stats_exclude_type', Type},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% stats_change_module/2
 %% ====================================================================
@@ -524,7 +524,7 @@ stats_exclude_type(ServerName, Type)
 stats_change_module(ServerName, Module) ->
     gen_server:call(ServerName,
                     {'$stats_change_module', Module},
-                    ?DEFAULT_SERVER_TIMEOUT).
+                    ?DEFAULT_CLIENT_TIMEOUT).
 
 %% call_p/2
 %% ====================================================================
@@ -564,7 +564,7 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
            Request,
            Args,
            TimeoutForProcessing,
-           ?DEFAULT_SERVER_TIMEOUT).
+           ?DEFAULT_CLIENT_TIMEOUT).
 
 %% call_p/5
 %% ====================================================================
@@ -574,15 +574,15 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
              Request :: atom(),
              Args :: term(),
              TimeoutForProcessing :: infinity | non_neg_integer(),
-             ServerTimeout :: infinity | non_neg_integer()) -> Reply when
+             ClientTimeout :: infinity | non_neg_integer()) -> Reply when
     Reply :: term().
 %% ====================================================================
-call_p(ServerName, Request, Args, TimeoutForProcessing, ServerTimeout) ->
+call_p(ServerName, Request, Args, TimeoutForProcessing, ClientTimeout) ->
     csi_utils:call_server(ServerName,
                           {call_p, Request, Args, TimeoutForProcessing},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ServerTimeout).
+                          ClientTimeout).
 
 %% call_s/2
 %% ====================================================================
@@ -593,7 +593,7 @@ call_p(ServerName, Request, Args, TimeoutForProcessing, ServerTimeout) ->
     Reply :: term().
 %% ====================================================================
 call_s(ServerName, Request) ->
-    call_s(ServerName, Request, [], ?DEFAULT_SERVER_TIMEOUT).
+    call_s(ServerName, Request, [], ?DEFAULT_CLIENT_TIMEOUT).
 
 %% call_s/3
 %% ====================================================================
@@ -605,7 +605,7 @@ call_s(ServerName, Request) ->
     Reply :: term().
 %% ====================================================================
 call_s(ServerName, Request, Args) ->
-    call_s(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
+    call_s(ServerName, Request, Args, ?DEFAULT_CLIENT_TIMEOUT).
 
 %% call_s/4
 %% ====================================================================
@@ -634,7 +634,7 @@ call_s(ServerName, Request, Args, TimeoutForProcessing) ->
     Reply :: term().
 %% ====================================================================
 call(ServerName, Request, Args) ->
-    call(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
+    call(ServerName, Request, Args, ?DEFAULT_CLIENT_TIMEOUT).
 
 %% call/4
 %% ====================================================================
@@ -680,7 +680,7 @@ post_p(ServerName, Request, Args, TimeoutForProcessing) ->
                           {post_p, Request, Args, TimeoutForProcessing},
                           ?DEFAULT_SERVICE_RETRY,
                           ?DEFAULT_SERVICE_SLEEP,
-                          ?DEFAULT_SERVER_TIMEOUT).
+                          ?DEFAULT_CLIENT_TIMEOUT).
 %% @TODO implement cast_server in cu
 cast_p(ServerName, Request, Args) ->
     cast_p(ServerName, Request, Args, undefined).
@@ -689,7 +689,7 @@ cast_p(ServerName, Request, Args, TimeoutForProcessing) ->
                    {cast_p, Request, Args, TimeoutForProcessing},
                    ?DEFAULT_SERVICE_RETRY,
                    ?DEFAULT_SERVICE_SLEEP,
-                   ?DEFAULT_SERVER_TIMEOUT).
+                   ?DEFAULT_CLIENT_TIMEOUT).
 
 %% cast/2
 %% ====================================================================
@@ -758,7 +758,7 @@ set_options(ServerName, Options) ->
                    {'$set_options', Options},
                    ?DEFAULT_SERVICE_RETRY,
                    ?DEFAULT_SERVICE_SLEEP,
-                   ?DEFAULT_SERVER_TIMEOUT).
+                   ?DEFAULT_CLIENT_TIMEOUT).
 
 
 % Test functions
@@ -769,7 +769,7 @@ list_macros() ->
                "CSI_SERVICE_PROCESS_GROUP_NAME:~p~n"
                "DEFAULT_SERVICE_RETRY:~p~n"
                "DEFAULT_SERVICE_SLEEP:~p~n"
-               "DEFAULT_SERVER_TIMEOUT:~p~n"
+               "DEFAULT_CLIENT_TIMEOUT:~p~n"
                "LOGTYPE:~p~n",
                [?CSI_SERVICE_NAME,
                 ?CSI_SERVICE_MODULE,
@@ -777,7 +777,7 @@ list_macros() ->
                 ?CSI_SERVICE_PROCESS_GROUP_NAME,
                 ?DEFAULT_SERVICE_RETRY,
                 ?DEFAULT_SERVICE_SLEEP,
-                ?DEFAULT_SERVER_TIMEOUT,
+                ?DEFAULT_CLIENT_TIMEOUT,
                 ?LOGTYPE
                ]
     ).

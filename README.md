@@ -57,6 +57,23 @@ In general `sys.config` will be generated from `template.sys.config` using confi
 ```
 String paths are converted to atom list so only config values referenced by atoms can be manipulated.
 
+## Managing timeout values
+
+Calling a CSI server to process a request in parallel, needs two different timeout values to be used. Client Timeout is the time spent waiting for the server to return, Server Timeout corresponds to the request being processed.
+
+It is important to have Client Timeout greater than the Server Timeout, since a blocking call shall not be returning before the request has been processed. Otherwise if the Client Timeout is smaller than the Server Timeout, the caller may get a timeout message before the request could be processed in a wider time frame, thus there will be unwanted messages in the client's mailbox when the processed request sends the result back.
+
+By default, the Client Timeout is set to infinity and the Server Timeout is set to 55 seconds.
+
+In case you need to change these values, you have three options:
+
+1.  During initialisation.
+    When a CSI server is launched, you can append a property list to set the server's parameters. [{server_timeout, Value}] passed as the last argument to start() or start link() will set the Server Timeout to be used by the launching server.
+2.  At runtime.
+    With csi:set_options(ServerName :: atom(), Options :: property_list()) you can set the Server Timeout at runtime.
+3.  At a specific call
+    Calls to CSI service server goes through the the service API, where you can append the one-time Server Timeout and also the Client Timeout values. Please visit csi.erl for details.
+
 ## Quick Start with the example
 Clone the repository, go to its directory.
 
