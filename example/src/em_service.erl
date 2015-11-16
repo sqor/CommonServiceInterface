@@ -28,7 +28,7 @@ init(_Args,_ServiceState) ->
 
 terminate(_Reason,_State) ->
     ok.
-    
+
 terminate_service(_Reason,_State) ->
     ok.
 
@@ -39,7 +39,7 @@ process_foo(_Args,State) ->
     {hello_world,State}.
 
 process_too_long(_Args,State) ->
-    {ok, Sleep} = application:get_env(timer_sleep),
+    {ok, Sleep} = application:get_env(em, timer_sleep),
     timer:sleep(Sleep),
     {long_job_fininshed,State}.
 
