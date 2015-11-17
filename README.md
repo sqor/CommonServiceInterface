@@ -73,6 +73,8 @@ In case you need to change these values, you have three options:
     With csi:set_options(ServerName :: atom(), Options :: property_list()) you can set the Server Timeout at runtime.
 3.  At a specific call
     Calls to CSI service server goes through the the service API, where you can append the one-time Server Timeout and also the Client Timeout values. Please visit csi.erl for details.
+    
+When changing the values, the timeout value parameters are in milliseconds.
 
 ## Quick Start with the example
 Clone the repository, go to its directory.
