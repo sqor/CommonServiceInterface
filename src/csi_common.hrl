@@ -10,8 +10,19 @@
 -define(CSI_SERVER_MODULE,csi_server).
 -define(CSI_SERVICE_PROCESS_GROUP_NAME,csi_service_group).
 
+-ifdef(debug).
+-define(DEFAULT_CLIENT_TIMEOUT,infinity).
+-define(DEFAULT_SERVER_TIMEOUT,infinity).
+-else.
+-define(DEFAULT_CLIENT_TIMEOUT,infinity).
+-define(DEFAULT_SERVER_TIMEOUT,55000).
+-endif.
+
 -define(DEFAULT_SERVICE_RETRY,2).
 -define(DEFAULT_SERVICE_SLEEP,200).
+-define(CSI_DEFAULT_OPTIONS,[{server_timeout, ?DEFAULT_SERVER_TIMEOUT}]).
+
+-type(property_list() :: list(proplists:property())).
 
 -ifndef(LOGFORMAT).
 
@@ -30,12 +41,4 @@
 -define(LOGMSG(Level,Format),
         ok = io:format("~p: ~p",[Level,Format])).
 -endif.
--endif.
-
--ifdef(debug).
--define(DEFAULT_SERVER_TIMEOUT,infinity).
--define(DEFAULT_SERVICE_TIMEOUT,infinity).
--else.
--define(DEFAULT_SERVER_TIMEOUT,60000).
--define(DEFAULT_SERVICE_TIMEOUT,55000).
 -endif.
