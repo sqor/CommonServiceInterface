@@ -770,6 +770,7 @@ list_macros() ->
                "DEFAULT_SERVICE_RETRY:~p~n"
                "DEFAULT_SERVICE_SLEEP:~p~n"
                "DEFAULT_CLIENT_TIMEOUT:~p~n"
+               "DEFAULT_SERVER_TIMEOUT:~p~n"
                "LOGTYPE:~p~n",
                [?CSI_SERVICE_NAME,
                 ?CSI_SERVICE_MODULE,
@@ -778,6 +779,7 @@ list_macros() ->
                 ?DEFAULT_SERVICE_RETRY,
                 ?DEFAULT_SERVICE_SLEEP,
                 ?DEFAULT_CLIENT_TIMEOUT,
+                ?DEFAULT_SERVER_TIMEOUT,
                 ?LOGTYPE
                ]
     ).

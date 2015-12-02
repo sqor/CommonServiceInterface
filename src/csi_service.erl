@@ -38,7 +38,7 @@
          process_crashing/2]).
 
 % init the global service
-init_service(InitArgs) ->
+init_service(_InitArgs) ->
     csi:cast(?CSI_SERVICE_NAME, start_services, []),
     {ok, #csi_service_state{}}.
 
