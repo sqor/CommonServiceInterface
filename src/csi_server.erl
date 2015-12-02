@@ -97,15 +97,8 @@ init({Name, Module, InitArgs, Options}) ->
         end
     catch
         A:B ->
-            ?LOGFORMAT(error,
-                       "Exception when calling init_service for service ~p as"
-                       "~p:init_service(~p). ~p:~p. Stacktrace:~p",
-                       [Name,
-                        Module,
-                        InitArgs,
-                        A,
-                        B,
-                        erlang:get_stacktrace()]),
+            log_error(A, B, erlang:get_stacktrace(), Module, init_service,
+                      InitArgs),
             {stop, exception}
     end.
 
@@ -347,15 +340,9 @@ handle_call({call_s, Request, Args} = R, _From, State) ->
         end
     catch
         A:B ->
-            ?LOGFORMAT(error,
-                       "Exception in service when calling ~p:~p(~p)."
-                       " ~p:~p. Stacktrace:~p~n",
-                       [Module,
-                        Request,
-                        Args,
-                        A,
-                        B,
-                        erlang:get_stacktrace()]),
+            log_error(A, B, erlang:get_stacktrace(),
+                      Module, Request,
+                      "~p,~p", [Args, State#csi_service_state.service_state]),
             collect_stats(clean, State, Request, R, Ref),
             {reply, {error, exception}, State}
     end;
@@ -413,14 +400,9 @@ handle_call({Request, Args}, From, State) ->
         end
     catch
         A:B ->
-            ?LOGFORMAT(error,
-                       "Exception in service when calling ~p:handle_call(~p)."
-                       " ~p:~p. Stacktrace:~p~n",
-                       [Module,
-                        Request,
-                        A,
-                        B,
-                        erlang:get_stacktrace()]),
+            log_error(A, B, erlang:get_stacktrace(),
+                      Module, handle_call, "~p,~p",
+                      [Request, State#csi_service_state.service_state]),
             collect_stats(clean, State, Request, Request, Ref),
             {reply, {error, exception}, State}
     end.
@@ -465,15 +447,7 @@ process_service_request(From, Module, Request, Args, State,
         end
     catch
         A:B ->
-            ?LOGFORMAT(error,
-                       "Exception in service when calling ~p:~p(~p)."
-                       " ~p:~p. Stacktrace:~p~n",
-                       [Module,
-                        Request,
-                        Args,
-                        A,
-                        B,
-                        erlang:get_stacktrace()]),
+            log_error(A, B, erlang:get_stacktrace(), Module, Request, Args),
             catch gen_server:reply(From, {error, exception}),
             _ = case TRef of
                     undefined ->
@@ -594,7 +568,7 @@ handle_info(Info, State) ->
             | term().
 %% ====================================================================
 terminate(Reason, #csi_service_state{service_module = Module,
-                                     service_name = Name,
+                                     service_name = _Name,
                                      service_state = ServiceState,
                                      stats_table = StatTable,
                                      stats_temp_table = TempStatTable,
@@ -605,17 +579,9 @@ terminate(Reason, #csi_service_state{service_module = Module,
     try Module:terminate_service(Reason, ServiceState)
     catch
         A:B ->
-            ?LOGFORMAT(error,
-                       "Exception when calling terminate_service for"
-                       " service ~p as"
-                       "~p:terminate_service(~p, ~p). ~p:~p. Stacktrace:~p",
-                       [Name,
-                        Module,
-                        Reason,
-                        ServiceState,
-                        A,
-                        B,
-                        erlang:get_stacktrace()]),
+            log_error(A, B, erlang:get_stacktrace(),
+                      Module, terminate_service,
+                      "~p,~p", [Reason, ServiceState]),
             {error, exception}
     end.
 
@@ -656,15 +622,14 @@ collect_stats(Stage, State, Request, R, Ref) ->
                           State#csi_service_state.stats_types)
                     catch
                         A:B ->
-                            ?LOGFORMAT(error,
-                                       "Exception when calling "
-                                       "~p:~p(~p). ~p:~p --> Stacktrace:~p",
-                                       [State#csi_service_state.stats_module,
-                                        State#csi_service_state.stats_types,
-                                        R,
-                                        A,
-                                        B,
-                                        erlang:get_stacktrace()])
+                            log_error(A, B, erlang:get_stacktrace(),
+                                      State#csi_service_state.stats_module,
+                                      State#csi_service_state.stats_types,
+                                      "~p, ~p, ~p, ~p, ~p, ~p, ~p, ~p",
+                                      [Stage, Request, R, Ref, params,
+                                       State#csi_service_state.stats_table,
+                                       State#csi_service_state.stats_temp_table,
+                                       TimeStamp])
                     end;
                 _ ->
                     ok
@@ -694,3 +659,17 @@ find_timeout(TimeOut, State) ->
         _ ->
             TimeOut
     end.
+
+log_error(A, B, Stack, Module, Request, Arg) ->
+    log_error(A, B, Stack, Module, Request, "~p", [Arg]).
+
+
+log_error(A, B, Stack, Module, Request, ArgFormat, Args) ->
+    ?LOGFORMAT(error,
+               "Exception ~p:~p. Stack:~p. When calling ~p:~p(~s).",
+               [A,
+                B,
+                Stack,
+                Module,
+                Request,
+                lists:flatten(io_lib:format(ArgFormat, Args))]).

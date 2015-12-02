@@ -38,7 +38,7 @@
          process_crashing/2]).
 
 % init the global service
-init_service(_InitArgs) ->
+init_service(InitArgs) ->
     csi:cast(?CSI_SERVICE_NAME, start_services, []),
     {ok, #csi_service_state{}}.
 
@@ -58,7 +58,7 @@ terminate(Reason, _State) ->
     end.
 
 terminate_service(_Reason, _State) ->
-    ok.
+    normal.
 
 start_services(_Args, State) ->
     ServerList =
