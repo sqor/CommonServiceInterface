@@ -58,7 +58,7 @@ terminate(Reason, _State) ->
     end.
 
 terminate_service(_Reason, _State) ->
-    ok.
+    normal.
 
 start_services(_Args, State) ->
     ServerList =

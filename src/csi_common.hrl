@@ -14,7 +14,7 @@
 -define(DEFAULT_CLIENT_TIMEOUT,infinity).
 -define(DEFAULT_SERVER_TIMEOUT,infinity).
 -else.
--define(DEFAULT_CLIENT_TIMEOUT,infinity).
+-define(DEFAULT_CLIENT_TIMEOUT,60000).
 -define(DEFAULT_SERVER_TIMEOUT,55000).
 -endif.
 
