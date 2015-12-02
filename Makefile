@@ -15,7 +15,7 @@ VERSION = $(shell erl -noinput -eval 'begin {ok, List} = file:consult("relx.conf
 #ERLC_OPTS := $(filter-out -Werror,$(ERLC_OPTS))
 
 # Use lager in csi and use parse transform
-#ERLC_OPTS += +'{parse_transform, lager_transform}' -Dlager
+ERLC_OPTS += +'{parse_transform, lager_transform}' -Dlager
 
 rel:: deps app
 	$(gen_verbose) config/generate-config.sh \
