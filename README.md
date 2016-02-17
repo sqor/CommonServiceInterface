@@ -1,4 +1,4 @@
-# SQ2_CommonServiceInterface
+# CommonServiceInterface
 
 # ALPHA VERSION USE WITH CARE
 
@@ -11,7 +11,7 @@ In your application root directory, make sure the following are inserted into yo
     PROJECT = yourapplicationname
     DEPS = csi
     
-    dep_csi = git git@github.com:Amplify-Social/SQ2_CommonServiceInterface.git master
+    dep_csi = git git@github.com:sqor/CommonServiceInterface.git master
 
     include erlang.mk
 
