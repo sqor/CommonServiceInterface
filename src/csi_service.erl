@@ -1,10 +1,10 @@
 %%%-------------------------------------------------------------------
-%%% @author sqor <dev@sqor.com>
-%%% @copyright (C) 2015, SQOR, Inc.
+%%% @author Zsolt Laky <zsolt.laky@erlang-solutions.com>
+%%% @copyright (C) 2016, Erlang Solutions.
 %%% @doc
-%%% Common Service Interface functional part
+%%% Common Service Interface application
 %%% @end
-%%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
+%%% Created : 20 Jun 2015 by Erlang Solutions
 %%%-------------------------------------------------------------------
 
 -module(csi_service).
@@ -68,15 +68,17 @@ start_services(_Args, State) ->
             undefined ->
                 []
         end,
-    {start_servers(ServerList),State}.
-    
+    {start_servers(ServerList), State}.
+
 services(_Args, State) ->
     {[erlang:process_info(X, registered_name) ||
         X <- pg2:get_members(?CSI_SERVICE_PROCESS_GROUP_NAME)],
      State}.
 
 handle_call({Request, Args}, _From, State) ->
-    ?LOGFORMAT(info,"Calling service through handle_call(~p)",[{Request, Args}]),
+    ?LOGFORMAT(info,
+               "Calling service through handle_call(~p)",
+               [{Request, Args}]),
     {Reply, NewState} = ?MODULE:Request(Args, State),
     {reply, Reply, NewState};
 
@@ -144,7 +146,7 @@ start_servers([{Name, Module, InitArgs, ChildSpec} | Tail]) ->
                     #{id => Name,
                       start => {?CSI_APPLICATION_NAME,
                                 start_link,
-                                [Name, Module,InitArgs]},
+                                [Name, Module, InitArgs]},
                       restart => permanent,
                       shutdown => 2000,
                       type => worker,
@@ -154,8 +156,10 @@ start_servers([{Name, Module, InitArgs, ChildSpec} | Tail]) ->
             end,
     case supervisor:start_child(csi_sup, Child) of
         {ok, _WorkerPId} ->
-            ?LOGFORMAT(info,"Service ~p started by CSI.",[Name]);
+            ?LOGFORMAT(info, "Service ~p started by CSI.", [Name]);
         WAFIT ->
-            ?LOGFORMAT(error,"CSI could not start service:~p. Reason:~p",[Name,WAFIT])
+            ?LOGFORMAT(error,
+                       "CSI could not start service:~p. Reason:~p",
+                       [Name, WAFIT])
     end,
     start_servers(Tail).

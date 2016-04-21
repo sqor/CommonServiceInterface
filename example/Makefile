@@ -5,7 +5,7 @@ PROJECT_DESCRIPTION = Example module using CSI service
 SQOR_DEPS = csi
 DEPS = lager ${SQOR_DEPS}
 
-dep_csi = git git@github.com:Amplify-Social/SQ2_CommonServiceInterface.git  
+dep_csi = git git@github.com:esl/CommonServiceInterface.git  
 
 BUILD_ENV ?= dev
 

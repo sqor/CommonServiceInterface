@@ -2,8 +2,7 @@
 PROJECT = csi
 PROJECT_DESCRIPTION = Common Service Interface
 
-SQOR_DEPS =
-DEPS = lager ${SQOR_DEPS}
+DEPS = lager
 
 BUILD_ENV ?= dev
 
@@ -22,5 +21,3 @@ rel:: deps app
 		--build-env ${BUILD_ENV}
 
 include erlang.mk
-
-

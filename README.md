@@ -11,7 +11,7 @@ In your application root directory, make sure the following are inserted into yo
     PROJECT = yourapplicationname
     DEPS = csi
     
-    dep_csi = git git@github.com:sqor/CommonServiceInterface.git master
+    dep_csi = git git@github.com:esl/CommonServiceInterface.git master
 
     include erlang.mk
 

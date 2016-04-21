@@ -1,11 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author sqor <dev@sqor.com>
-%%% @copyright (C) 2015, SQOR, Inc.
+%%% @author Zsolt Laky <zsolt.laky@erlang-solutions.com>
+%%% @copyright (C) 2016, Erlang Solutions.
 %%% @doc
-%%% supervisor for CSI service
+%%% Common Service Interface application
 %%% @end
-%%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
+%%% Created : 20 Jun 2015 by Erlang Solutions
 %%%-------------------------------------------------------------------
+
 -module(csi_sup).
 -behaviour(supervisor).
 
