@@ -1,17 +1,17 @@
 %%%-------------------------------------------------------------------
-%%% @author sqor <dev@sqor.com>
-%%% @copyright (C) 2015, SQOR, Inc.
+%%% @author Zsolt Laky <zsolt.laky@erlang-solutions.com>
+%%% @copyright (C) 2016, Erlang Solutions.
 %%% @doc
-%%% Common service interface application
+%%% Common Service Interface application
 %%% @end
-%%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
+%%% Created : 20 Jun 2015 by Erlang Solutions
 %%%-------------------------------------------------------------------
 
 -module(csi).
 -compile([{parse_transform, lager_transform}, {export_all}]).
 
 -include("csi.hrl").
--include("csi_common.hrl"). 
+-include("csi_common.hrl").
 %% ====================================================================
 %% API functions
 %% ====================================================================

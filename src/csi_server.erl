@@ -1,10 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author sqor <dev@sqor.com>
-%%% @copyright (C) 2015, SQOR, Inc.
-%%% Common Service Interface gen_server implementation
+%%% @author Zsolt Laky <zsolt.laky@erlang-solutions.com>
+%%% @copyright (C) 2016, Erlang Solutions.
+%%% @doc
+%%% Common Service Interface application
 %%% @end
-%%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
+%%% Created : 20 Jun 2015 by Erlang Solutions
 %%%-------------------------------------------------------------------
+
 -module(csi_server).
 
 -behaviour(gen_server).
@@ -225,18 +227,18 @@ handle_call('$stats_get_all', _From, State) ->
     Reply = ets:tab2list(State#csi_service_state.stats_table),
     {reply, Reply, State};
 
-handle_call({'$stats_get_funs', FunctionList}, _From, State)
+handle_call({'$stats_get_funs', FunctionList}, From, State)
     when is_atom(FunctionList) ->
-        handle_call({'$stats_get_funs', [FunctionList]}, _From, State);
+        handle_call({'$stats_get_funs', [FunctionList]}, From, State);
 
 handle_call({'$stats_get_funs', _FunctionList}, _From, State) ->
     %% @TODO return the stats for only the functions in the Functionlist
     Reply = ets:tab2list(State#csi_service_state.stats_table),
     {reply, Reply, State};
 
-handle_call({'$stats_get_types', TypeList}, _From, State)
+handle_call({'$stats_get_types', TypeList}, From, State)
     when is_atom(TypeList) ->
-        handle_call({'$stats_get_types', [TypeList]}, _From, State);
+        handle_call({'$stats_get_types', [TypeList]}, From, State);
 
 handle_call({'$stats_get_types', _TypeList}, _From, State) ->
     %% @TODO return the stats for only the types in the Typelist
@@ -551,10 +553,13 @@ handle_info(Info, State) ->
                                 WAFIT])
             end,
             {noreply, State};
-        Else ->
-            Else
+        {noreply, NewState} ->
+            {noreply, State#csi_service_state{service_state = NewState}};
+        {noreply, NewState, Timeout} ->
+            {noreply, State#csi_service_state{service_state = NewState}, Timeout};
+        {stop, Reason, NewState} ->
+            {stop, Reason, State#csi_service_state{service_state = NewState}}
     end.
-
 
 %% terminate/2
 %% ====================================================================

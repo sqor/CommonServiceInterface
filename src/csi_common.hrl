@@ -1,11 +1,12 @@
 %%%-------------------------------------------------------------------
-%%% @author sqor <dev@sqor.com>
-%%% @copyright (C) 2015, SQOR, Inc.
+%%% @author Zsolt Laky <zsolt.laky@erlang-solutions.com>
+%%% @copyright (C) 2016, Erlang Solutions.
 %%% @doc
-%%% csi common constants
+%%% Common Service Interface application
 %%% @end
-%%% Created : 20 Jun 2015 by sqor <dev@sqor.com>
+%%% Created : 20 Jun 2015 by Erlang Solutions
 %%%-------------------------------------------------------------------
+
 -define(CSI_SERVICE_MODULE,csi_service).
 -define(CSI_SERVER_MODULE,csi_server).
 -define(CSI_SERVICE_PROCESS_GROUP_NAME,csi_service_group).

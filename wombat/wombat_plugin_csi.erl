@@ -68,7 +68,6 @@ init(_) ->
 
     %% Metrics
     Metrics = get_metric_info_tuples(),
-    ?BAKTER(Metrics),
     Capabilities = [ wombat_plugin_utils:create_metric_capability(
                        metric_name_to_capability_id(Id, Description), Description, Type, Unit)
                      || {Id, Description, Type, Unit} <- Metrics ],
@@ -176,6 +175,7 @@ collect_metrics(#state{metric_info_tuples = Metrics} = State) ->
     Samples = [ {metric, metric_name_to_capability_id(Id, Name), Type,
                  get_metric_value(Id)}
                 || {Id, Name, Type, _Unit} <- Metrics ],
+
     % check if we had new metrics appeared
     NewMetrics = get_metric_info_tuples(),
     Capabilities = [ wombat_plugin_utils:create_metric_capability(
@@ -183,11 +183,12 @@ collect_metrics(#state{metric_info_tuples = Metrics} = State) ->
                      || {Id, Description, Type, Unit} <- NewMetrics ],
     NewState = case Capabilities =/= State#state.capabilities of
                    true ->
-                       ?BAKTER("New Capabilities"),
+ %                      ?BAKTER("New Capabilities"),
                        wombat_plugin:announce_capabilities(Capabilities),
-                       State#state{capabilities = Capabilities};
+                       State#state{capabilities = Capabilities,
+                                   metric_info_tuples = NewMetrics};
                    _ ->
-                       ?BAKTER("No New Capabilities"),
+ %                      ?BAKTER("No New Capabilities"),
                        State
                end,
     {ok, Samples, NewState}.
@@ -231,6 +232,7 @@ collect_live_metrics({Id, Name, Type, _Unit}) ->
 -spec get_metric_info_tuples() -> [metric_info_tuple()].
 get_metric_info_tuples() ->
     Services = [S || {registered_name, S} <- csi:services()],
+    MetricInfoTuples =
     lists:foldl(
       fun(Service, Acc) ->
               Measures = csi:stats_get_all(Service),
@@ -258,7 +260,8 @@ get_metric_info_tuples() ->
                             end,
                             [],Measures) ++ Acc
       end,
-      [], Services).
+      [], Services),
+      MetricInfoTuples.
 %%     [{nodes_count, <<"Number of non-hidden nodes">>, counter, numeric},
 %%      {hidden_nodes_count, <<"Number of hidden nodes">>, counter, numeric},
 %%      {}].
@@ -292,7 +295,8 @@ metric_name_to_capability_id(Id, Description) ->
     [Name|_] = string:tokens(atom_to_list(Id),"-"),
     App = case application:get_application(whereis(list_to_atom(Name))) of
               undefined ->
-                  missing_app;
+                  [Prefix|_] = string:tokens(atom_to_list(Id), "_"),
+                  list_to_atom(Prefix);
               {ok, Application} ->
                   Application
     end,
