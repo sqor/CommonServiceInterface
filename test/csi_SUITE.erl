@@ -46,11 +46,18 @@ suite() ->
 %% variable, but should NOT alter/remove any existing entries.
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
-    ok = application:start(compiler),
-    ok = application:start(syntax_tools),
-    ok = application:start(goldrush),
-    ok = application:start(lager),
-    ok = application:start(csi),
+    ok = application:ensure_started(runtime_tools),
+    ok = application:ensure_started(compiler),
+    ok = application:ensure_started(syntax_tools),
+    ok = application:ensure_started(goldrush),
+    ok = application:ensure_started(lager),
+    ok = application:ensure_started(csi),
+%%     ct:pal("runtime tools:~p", [application:ensure_started(runtime_tools)]),
+%%     ct:pal("compiler:~p", [application:ensure_started(compiler)]),
+%%     ct:pal("syntax tools:~p", [application:ensure_started(syntax_tools)]),
+%%     ct:pal("goldrush:~p", [application:ensure_started(goldrush)]),
+%%     ct:pal("lager:~p", [application:ensure_started(lager)]),
+%%     ct:pal("csi:~p", [application:ensure_started(csi)]),
     Config.
 
 %%--------------------------------------------------------------------
