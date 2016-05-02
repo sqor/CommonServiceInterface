@@ -63,12 +63,8 @@
             Options :: property_list()}) ->
           Result when
     Result :: {ok, State}
-            | {ok, State, Timeout}
-            | {ok, State, hibernate}
-            | {stop, Reason :: term()}
-            | ignore,
-    State :: term(),
-    Timeout :: non_neg_integer() | infinity.
+            | {stop, Reason :: term()},
+    State :: term().
 %% ====================================================================
 init({Name, Module, InitArgs, Options}) ->
     process_flag(trap_exit, true),
@@ -81,11 +77,11 @@ init({Name, Module, InitArgs, Options}) ->
     ok = csi:register(),
     try case Module:init_service(InitArgs) of
             {ok, SState} ->
+                StatsInit = ?DEFAULT_STATS_MODULE:init_stats(),
                 {ok, #csi_service_state{service_name = Name,
                                         service_module = Module,
                                         service_state = SState,
-                                        stats_types =
-                                            ?DEFAULT_STATS_MODULE:init_stats(),
+                                        stats_types = StatsInit,
                                         stats_table = StatTable,
                                         stats_temp_table = StatTempTable,
                                         stats_process_table = ProcTable,
@@ -344,7 +340,7 @@ handle_call({call_s, Request, Args} = R, _From, State) ->
         A:B ->
             log_error(A, B, erlang:get_stacktrace(),
                       Module, Request,
-                      "~p,~p", [Args, State#csi_service_state.service_state]),
+                      "~p, ~p", [Args, State#csi_service_state.service_state]),
             collect_stats(clean, State, Request, R, Ref),
             {reply, {error, exception}, State}
     end;
@@ -403,7 +399,7 @@ handle_call({Request, Args}, From, State) ->
     catch
         A:B ->
             log_error(A, B, erlang:get_stacktrace(),
-                      Module, handle_call, "~p,~p",
+                      Module, handle_call, "~p, ~p",
                       [Request, State#csi_service_state.service_state]),
             collect_stats(clean, State, Request, Request, Ref),
             {reply, {error, exception}, State}
@@ -472,12 +468,8 @@ process_service_request(From, Module, Request, Args, State,
 %% handle_cast-2">gen_server:handle_cast/2</a>
 %% @end
 -spec handle_cast(Request :: term(), State :: term()) -> Result when
-    Result :: {noreply, NewState}
-            | {noreply, NewState, Timeout}
-            | {noreply, NewState, hibernate}
-            | {stop, Reason :: term(), NewState},
-    NewState :: term(),
-    Timeout :: non_neg_integer() | infinity.
+    Result :: {noreply, NewState},
+    NewState :: term().
 %% ====================================================================
 handle_cast({cast, FunctionRequest, Args}, State) ->
     _ = handle_call({FunctionRequest, Args}, {self(), make_ref()}, State),
@@ -556,7 +548,8 @@ handle_info(Info, State) ->
         {noreply, NewState} ->
             {noreply, State#csi_service_state{service_state = NewState}};
         {noreply, NewState, Timeout} ->
-            {noreply, State#csi_service_state{service_state = NewState}, Timeout};
+            {noreply, State#csi_service_state{service_state = NewState},
+             Timeout};
         {stop, Reason, NewState} ->
             {stop, Reason, State#csi_service_state{service_state = NewState}}
     end.
@@ -566,7 +559,7 @@ handle_info(Info, State) ->
 %% @doc <a href="http://www.erlang.org/doc/man/gen_server.html#Module:
 %% terminate-2">gen_server:terminate/2</a>
 %% @end
--spec terminate(Reason, State :: term()) -> Any :: term() when
+-spec terminate(Reason, State :: #csi_service_state{}) -> Any :: any() when
     Reason :: normal
             | shutdown
             | {shutdown, term()}
@@ -586,7 +579,7 @@ terminate(Reason, #csi_service_state{service_module = Module,
         A:B ->
             log_error(A, B, erlang:get_stacktrace(),
                       Module, terminate_service,
-                      "~p,~p", [Reason, ServiceState]),
+                      "~p, ~p", [Reason, ServiceState]),
             {error, exception}
     end.
 
@@ -597,7 +590,7 @@ terminate(Reason, #csi_service_state{service_module = Module,
 %% Module:code_change-3">gen_server:code_change/3</a>
 %% @end
 -spec code_change(OldVsn, State :: term(), Extra :: term()) -> Result when
-    Result :: {ok, NewState :: term()} | {error, Reason :: term()},
+    Result :: {ok, NewState :: term()},
     OldVsn :: Vsn | {down, Vsn},
     Vsn :: term().
 %% ====================================================================
