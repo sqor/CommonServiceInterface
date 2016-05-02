@@ -5,6 +5,24 @@
 ## Build environment
 In case you use erlang.mk and relx the Quick start section contains the necessary setup. Otherwise just make sure the dependency on csi is included in your build environment
 
+## Quick start on using CSI with rebar3
+
+In your application root directory, make sure the following are inserted into your rebar.config under the deps key
+
+    {deps, [
+    {csi, {git, "git@github.com:esl/CommonServiceInterface.git", {branch, "master"}}}
+    ]}.
+
+Include csi in your relx config part of rebar.config, similar to this:
+
+    {release, {your_server, "0.0.1"},
+              [csi,
+               your_server,
+               runtime_tools]}.
+    {extend_start_script, true}.
+    
+In your app.src file, include csi in the applications section.
+
 ## Quick start on using CSI with erlang.mk
 In your application root directory, make sure the following are inserted into your Makefile
 
@@ -79,31 +97,38 @@ When changing the values, the timeout value parameters are in milliseconds.
 ## Quick Start with the example
 Clone the repository, go to its directory.
 
-    cd example
-    make run
+    $>cd example
+
+In case you use rebar3, issue the following command:
+
+    $>rebar3 shell
+    
+In case you use erlang.mk, issue the following command:
+
+    $>make run 
 
 You will have an erlang shell. Here is how to play with it:
 
-    (em_server@127.0.0.1)1> em:start().
+    1> em:start().
     {ok,<0.83.0>}
-    (em_server@127.0.0.1)2> em:
+    2> em:
     module_info/0       module_info/1       process_crashing/1
     process_foo/1       process_too_long/1  start/0
     start_link/0        stop/0
-    (em_server@127.0.0.1)2> em:process_foo(test).
+    2> em:process_foo(test).
     hello_world
-    (em_server@127.0.0.1)3> em:process_too_long(test).
+    3> em:process_too_long(test).
     {error,timeout_killed}
-    (em_server@127.0.0.1)4> em:process_crashing(test).
+    4> em:process_crashing(test).
     {error,exception}
-    (em_server@127.0.0.1)5> 19:36:30.489 [error] Exception in service when calling em_service:process_crashing([test]). error:badarith. Stacktrace:[{em_service,process_crashing,2,[{file,"src/em_service.erl"},{line,46}]},{csi_server,process_service_request,8,[{file,"src/csi_server.erl"},{line,402}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,237}]}]
+    5> 19:36:30.489 [error] Exception in service when calling em_service:process_crashing([test]). error:badarith. Stacktrace:[{em_service,process_crashing,2,[{file,"src/em_service.erl"},{line,46}]},{csi_server,process_service_request,8,[{file,"src/csi_server.erl"},{line,402}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,237}]}]
     19:36:30.490 [error] CRASH REPORT Process <0.89.0> with 0 neighbours exited with reason: exception in csi_server:process_service_request/8 line 425
     
-    (em_server@127.0.0.1)5> csi:stats_get_all(em_service).
+    5> csi:stats_get_all(em_service).
     [{{response_time,process_foo},{1,106,106.0,106,106}}]
     (em_server@127.0.0.1)6> csi:services
     services/0         services_status/0
-    (em_server@127.0.0.1)6> csi:services_status().
+    6> csi:services_status().
     [{{registered_name,em_service},
       {csi_service_state,em_service,em_service,
                          {em_state},
@@ -120,18 +145,18 @@ You will have an erlang shell. Here is how to play with it:
                          [],
                          [{response_time,[{"last_nth_to_collect",10},
                                           {"normalize_to_nth",8}]}]}}]
-    (em_server@127.0.0.1)7> em:stop().
+    7> em:stop().
     ok
-    (em_server@127.0.0.1)8>
+    8>
     
 And if you use lager, here is what you find in the console.log after the sequence above:
 
-    2015-08-04 19:35:35.973 [info] <0.7.0> Application lager started on node 'em_server@127.0.0.1'
-    2015-08-04 19:35:35.980 [info] <0.7.0> Application csi started on node 'em_server@127.0.0.1'
-    2015-08-04 19:35:35.980 [info] <0.7.0> Application em started on node 'em_server@127.0.0.1'
-    2015-08-04 19:35:35.984 [info] <0.7.0> Application runtime_tools started on node 'em_server@127.0.0.1'
-    2015-08-04 19:36:30.489 [error] <0.89.0>@csi_server:process_service_request:415 Exception in service when calling em_service:process_crashing([test]). error:badarith. Stacktrace:[{em_service,process_crashing,2,[{file,"src/em_service.erl"},{line,46}]},{csi_server,process_service_request,8,[{file,"src/csi_server.erl"},{line,402}]},{proc_lib,init_p_do_apply,3,[{file,"proc_lib.erl"},{line,237}]}]
-    2015-08-04 19:36:30.490 [error] <0.89.0> CRASH REPORT Process <0.89.0> with 0 neighbours exited with reason: exception in csi_server:process_service_request/8 line 425
+    2016-05-02 11:31:05.432 [info] <0.6.0> Application csi started on node nonode@nohost
+    2016-05-02 11:31:54.417 [info] <0.6.0> Application em started on node nonode@nohost
+    2016-05-02 13:52:49.517 [info] <0.6.0> Application lager started on node nonode@nohost
+    2016-05-02 13:52:49.529 [info] <0.6.0> Application csi started on node nonode@nohost
+    2016-05-02 13:53:36.009 [error] <0.146.0> CRASH REPORT Process <0.146.0> with 0 neighbours exited with reason: exception in
+    csi_server:process_service_request/8 line 456
 
 # Road to use CSI
 
