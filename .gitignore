@@ -7,3 +7,7 @@
 /scripts/
 /.settings/
 /.project
+/_build/
+/logs/
+/csi.d
+/rebar.lock

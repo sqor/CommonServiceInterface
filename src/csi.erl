@@ -535,7 +535,7 @@ stats_change_module(ServerName, Module) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request) ->
-    call_p(ServerName, Request, [], undefined).
+    call_p(ServerName, Request, [], ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_p/3
 %% ====================================================================
@@ -547,7 +547,7 @@ call_p(ServerName, Request) ->
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args) ->
-    call_p(ServerName, Request, Args, undefined).
+    call_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
 
 %% call_p/4
 %% ====================================================================
@@ -573,8 +573,8 @@ call_p(ServerName, Request, Args, TimeoutForProcessing) ->
 -spec call_p(ServerName :: atom(),
              Request :: atom(),
              Args :: term(),
-             TimeoutForProcessing :: infinity | non_neg_integer(),
-             ClientTimeout :: infinity | non_neg_integer()) -> Reply when
+             TimeoutForProcessing :: infinity | integer(),
+             ClientTimeout :: infinity | integer()) -> Reply when
     Reply :: term().
 %% ====================================================================
 call_p(ServerName, Request, Args, TimeoutForProcessing, ClientTimeout) ->
@@ -663,7 +663,7 @@ call(ServerName, Request, Args, TimeoutForProcessing) ->
     Reply :: term().
 %% ====================================================================
 post_p(ServerName, Request, Args) ->
-    post_p(ServerName, Request, Args, undefined).
+    post_p(ServerName, Request, Args, ?DEFAULT_SERVER_TIMEOUT).
 
 %% post_p/4
 %% ====================================================================
@@ -720,7 +720,9 @@ cast(ServerName, Request, Args) ->
 %% @doc registers a service in CSI
 %% @end
 -spec register() -> Reply when
-    Reply :: term().
+    Reply :: ok
+          | {error, {no_such_group, Name}},
+    Name :: any().
 %% ====================================================================
 register() ->
     pg2:join(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
@@ -730,7 +732,9 @@ register() ->
 %% @doc unregisters a service in CSI
 %% @end
 -spec unregister() -> Reply when
-    Reply :: term().
+    Reply :: ok
+          | {error, {no_such_group, Name}},
+    Name :: any().
 %% ====================================================================
 unregister() ->
     pg2:leave(?CSI_SERVICE_PROCESS_GROUP_NAME, self()).
