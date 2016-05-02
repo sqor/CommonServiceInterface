@@ -65,7 +65,6 @@ main(Args) ->
     Deps = get_deps(Opts),
     generate_deps(Deps, Env),
     generate_sys_config(".", Env),
-
     DepConfigs = lists:flatten([extract_dep_config(Dep) || Dep <- Deps]),
     Configs = apply_main_sys_config(DepConfigs),
     dump_configs("config/sys.config", Configs).
@@ -80,6 +79,9 @@ parse_opts(["--deps" | Rest], Result) ->
     parse_opts(Rest2, [{deps, Vals} | Result]);
 parse_opts(["--build-env", Env | Rest], Result) ->
     parse_opts(Rest, [{env, Env} | Result]);
+parse_opts(["--build-env"], Result) ->
+    io:format("Default build-env=dev~n",[]),
+    parse_opts([],[{env, "dev"} | Result]);
 parse_opts(Opts, _Result) ->
     err("Cannot parse ~p~n", [Opts]).
 
@@ -124,7 +126,6 @@ process_template(Dir, EnvName) ->
     VarsFile = filename:join(Dir, "config/config.vars"),
     Template = filename:join(Dir, "config/template.sys.config"),
     SysConf = filename:join(Dir, "config/sys.config"),
-
     Vars = read_vars(VarsFile, EnvName),
     case file:read_file(Template) of
         {ok, File} ->
@@ -245,9 +246,17 @@ read_vars(VarsFile, EnvName) ->
     case file:consult(VarsFile) of
         {ok, AllVars} ->
             Env = list_to_atom(EnvName),
-            {Env, Vars} = lists:keyfind(Env, 1, AllVars),
-            Vars;
+            case lists:keyfind(Env, 1, AllVars) of
+                {Env, Vars} ->
+                    Vars;
+                _ ->
+                    io:format("Could not find vars for env:~p~n", [EnvName]),
+                    []
+            end;
         {error, enoent} ->
+            [];
+        ELSE ->
+            io:format("heyhey:~p~n", [ELSE]),
             []
     end.
 

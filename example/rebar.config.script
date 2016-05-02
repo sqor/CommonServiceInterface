@@ -1,0 +1,25 @@
+
+%% In dev, release dependencies will be symlinked in the _rel/<release>/lib
+Env = os:getenv("BUILD_ENV"),
+%io:format("Build env is ~p~n", [Env]),
+%io:format("CONFIG is:~p~n", [CONFIG]),
+
+Symlink = case Env of
+              false ->
+                  true;
+              "dev" ->
+                  true;
+              "local" ->
+                  true;
+              _ ->
+                  false
+          end,
+
+case Symlink of
+    true ->
+%        io:format("relx dev_mode enabled, deps are symlinked~n", []),
+        [{dev_mode, true} | CONFIG];
+    false ->
+        CONFIG
+end.
+
