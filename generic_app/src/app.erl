@@ -12,5 +12,5 @@
          process_crashing/1]).
 
 process_foo(Atom) -> csi:call_p(?SERVICE_NAME, process_foo, [Atom]).
-process_too_long(Atom) -> csi:call_p(?SERVICE_NAME, process_too_long, [Atom]).
+process_too_long(Atom) -> csi:call_p(?SERVICE_NAME, process_too_long, [Atom], 4000).
 process_crashing(Atom) -> csi:call_p(?SERVICE_NAME, process_crashing, [Atom]).
